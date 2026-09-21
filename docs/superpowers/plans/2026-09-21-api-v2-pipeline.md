@@ -704,15 +704,21 @@ def telemetry(tmp_path) -> Telemetry:
 
 
 def test_analyser_v2_sur_contrat_multi_articles(telemetry: Telemetry, tmp_path):
+    """Chaque article est assez long pour ne pas tenir dans une seule section
+    groupée (taille_max=6000 du bundle v2) : vérifie le multi-appels + la
+    consolidation, sans dépendre du nombre exact de sections produites par le
+    regroupement (Task 2) — seulement qu'il y en a plus d'une."""
     client = LLMClient(Bundle.charger("v2"), fixtures=tmp_path / "fixtures_vides")
+    remplissage = "Contexte additionnel du contrat. " * 150  # ~5 000 car.
     texte = (
-        "Préambule\n\nContexte du contrat.\n\n"
-        "Article 1 — Confidentialité\n\nLes parties respectent la confidentialité des informations.\n\n"
-        "Article 2 — Résiliation\n\nLe contrat peut être résilié moyennant préavis.\n"
+        f"Préambule\n\n{remplissage}\n\n"
+        f"Article 1 — Confidentialité\n\nLes parties respectent la confidentialité "
+        f"des informations. {remplissage}\n\n"
+        f"Article 2 — Résiliation\n\nLe contrat peut être résilié moyennant préavis. {remplissage}\n"
     )
     resultat = analyser_v2(texte, client, telemetry)
-    assert resultat.sections == 3
-    assert resultat.appels_llm == 3
+    assert resultat.sections >= 2
+    assert resultat.appels_llm == resultat.sections
     types = {c.type for c in resultat.clauses}
     assert {"confidentialité", "résiliation"} <= types
     assert 0.0 <= resultat.confiance_globale <= 1.0
