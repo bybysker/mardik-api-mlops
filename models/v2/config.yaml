@@ -1,26 +1,46 @@
-# Bundle v2 — la nouvelle version. [À COMPLÉTER — chantier 1]
+# models/v2/config.yaml — Bundle v2, chantier 1 point 2.
 #
-# Même client LLM que la v1 (app/llm_client.py). Ce qui change, c'est ce
-# bundle. La structure est là ; la stratégie, le schéma de sortie et les
-# paramètres sont à décider — et à justifier en revue de conception.
-#
-# Question : qu'est-ce qui, dans ce fichier, fait qu'une version est une version ?
+# Stratégie map-reduce : un appel LLM par section (découpée par
+# app.pipeline.decoupage), sortie JSON contrainte au schéma ci-dessous.
 
 version: v2.0.0
 modele: ${LLM_MODEL}
-strategie: monolithique          # TODO : map_reduce_clauses (voir app/pipeline/)
+strategie: map_reduce_clauses
 
 prompt: |
-  TODO — le prompt de la v2. Il s'applique à UNE section du contrat (titre +
-  texte), pas au contrat entier. Il doit imposer les libellés de clauses
-  (voir app/llm_client.py::TYPES_CLAUSES) et une sortie JSON.
+  Tu es un assistant juridique. On te donne le titre et le texte d'UNE
+  section d'un contrat commercial (pas le contrat entier).
+
+  Identifie les clauses présentes dans cette seule section, parmi
+  exactement ces libellés : résiliation, pénalité de retard, confidentialité,
+  propriété intellectuelle, limitation de responsabilité, force majeure,
+  durée, prix et paiement, non-concurrence, garantie, données personnelles,
+  droit applicable, exclusivité, reconduction tacite.
+
+  Pour chaque clause trouvée, cite l'extrait exact du texte qui la justifie
+  (pas de paraphrase) et donne ta confiance entre 0 et 1. N'invente jamais un
+  extrait absent du texte fourni. Si aucune clause n'est présente dans cette
+  section, réponds avec une liste vide.
 
 parametres:
-  temperature: 0.2               # TODO : quelle valeur pour un gate stable ?
-  max_tokens: 300
-  seed: null                     # TODO
-  contexte_max_caracteres: 6000  # par section, plus par contrat
-  essais_eval: 1                 # nombre de passes du gate (moyenne)
+  temperature: 0.2
+  max_tokens: 500
+  seed: 0                        # fixe, pour un gate stable (point ouvert du stub tranché ici)
+  contexte_max_caracteres: 6000
+  essais_eval: 1
 
-schema_sortie: null              # TODO : le schéma JSON de la sortie (clauses : type, extrait, confiance)
+schema_sortie:
+  type: object
+  properties:
+    clauses:
+      type: array
+      items:
+        type: object
+        properties:
+          type: {type: string}
+          extrait: {type: string}
+          confiance: {type: number, minimum: 0, maximum: 1}
+        required: [type, extrait, confiance]
+  required: [clauses]
+
 cout_par_1k_tokens: 0.002
