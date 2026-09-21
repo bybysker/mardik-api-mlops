@@ -189,6 +189,21 @@ avec le code réel, pas seulement la cible) :
   sur les 12 contrats du corpus, valent actuellement exactement 0,0** (pas
   seulement le minimum global — chaque clause individuellement).
 
+## En cours / point ouvert (2026-09-21)
+
+**Chantier 1, point 3 (chaîne `llmops.yml` : gates → build → artefact
+étiqueté → déploiement canary)** : brainstorming démarré, pas terminé,
+aucun code écrit. Décidé : pas besoin de rouvrir l'architecture (celle de
+`docs/spec-v2.md` §4 sert de cible pour le déploiement aussi). Point
+**non tranché**, à poser à l'utilisateur en premier à la reprise :
+périmètre exact du point 3 — voir `TODO.md`, section « Chantier 1 — La
+chaîne LLMOps » pour le détail (`ops/deploy.py::surveiller` et
+`app/gateway.py` sont-ils dans ce point 3, ou chantier 2 ?). Repères déjà
+en main pour la suite : `conception_figee/chantier1_llmops/gel-eval-avant-fusion.md`
+(mécanisme à deux tags `revue-ok`/`eval-ok`, détaillé et acté) et
+`ops/deploy.py` (stub fourni, signatures des 5 fonctions déjà figées par
+les tests d'acceptance fournis).
+
 ## Environnement technique
 
 - Dépôt git propre à `mardik-api-mlops`, remote `origin` =

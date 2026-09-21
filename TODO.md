@@ -55,13 +55,24 @@
       (push `main`/PR/tags) ; à réécrire pour le mécanisme à deux tags
       (`revue-ok/<sha>`, `eval-ok/<sha>`) décrit dans
       `conception_figee/chantier1_llmops/gel-eval-avant-fusion.md`
-- [ ] **Avant d'implémenter la CI/CD (point 3)** : session de conciliation
-      conception ↔ code fourni dédiée, du même type que celle faite pour
-      l'architecture v1/v2/gateway/Caddy (2026-09-21) — l'étape « déploiement
-      canary » de `conception_figee/chantier1_llmops/img/chaine-llmops.png`
-      suppose des artefacts/containers séparés par version, à confronter au
-      `docker-compose.yml`/`Dockerfile` actuels avant d'écrire le workflow.
-      Pas commencé, volontairement laissé de côté pendant le point 2 (API v2).
+- [x] **Conciliation architecture avant CI/CD (point 3)** : pas besoin de la
+      rouvrir, l'architecture actée pour l'API (`docs/spec-v2.md` §4 — un seul
+      artefact Docker partagé, 3 containers/rôles v1/v2/gateway, Caddy en
+      frontal) sert aussi de cible pour le déploiement canary du point 3
+      (confirmé par l'utilisateur, 2026-09-21).
+- [ ] **Point ouvert, à trancher au démarrage de la prochaine session** :
+      périmètre exact du point 3. `ops/deploy.py` (stub fourni) contient
+      `publier/deployer_canary/promouvoir/rollback` (mécanique de
+      déploiement, clairement point 3) **et** `surveiller` (détection de
+      dérive + rollback automatique) qui ressemble à la boucle « rollback sur
+      signal » du chantier 2 du brief. `app/gateway.py` (routage réel du
+      trafic canary, testé par `test_promotion_canary_puis_totale` et
+      `test_rollback_en_une_operation`) est rangé sous chantier 2 dans ce
+      TODO, mais sans lui la mécanique de canary ne route aucun trafic pour
+      de vrai — ces deux tests fournis resteront rouges tant que le choix
+      n'est pas fait. Question posée à l'utilisateur, pas encore répondue :
+      point 3 = `llmops.yml` + `deploy.py` sans `surveiller()` (recommandé),
+      ou avec `surveiller()`, ou avec `gateway.py` en plus.
 
 ## Chantier 2 — Pilotage
 
