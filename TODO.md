@@ -19,21 +19,21 @@
 
 ## Chantier 1 — Le bundle v2
 
-- [ ] `models/v2/config.yaml` : stratégie `map_reduce_clauses`, prompt par
+- [x] `models/v2/config.yaml` : stratégie `map_reduce_clauses`, prompt par
       section (titre + texte, sortie JSON contrainte), `schema_sortie`,
       température/seed pour un gate stable
 
 ## Chantier 1 — Le pipeline v2
 
-- [ ] `app/pipeline/decoupage.py::decouper` — découpage par articles, taille
+- [x] `app/pipeline/decoupage.py::decouper` — découpage par articles, taille
       cible 6 000 car., aucune perte de texte
-- [ ] `app/pipeline/extraction.py::extraire` — un appel LLM par section
+- [x] `app/pipeline/extraction.py::extraire` — un appel LLM par section
       (json_mode), gestion des réponses hors schéma sans planter
-- [ ] `app/pipeline/consolidation.py::consolider` — fusion + dédoublonnage par
+- [x] `app/pipeline/consolidation.py::consolider` — fusion + dédoublonnage par
       type de clause
-- [ ] `app/pipeline/confiance.py::scorer` — score composite (≥ 2 signaux
+- [x] `app/pipeline/confiance.py::scorer` — score composite (≥ 2 signaux
       indépendants ; conception : confiance LLM × stabilité inter-chunks)
-- [ ] `app/api_v2.py::analyser_v2` + route `POST /v2/analyse` — orchestre les
+- [x] `app/api_v2.py::analyser_v2` + route `POST /v2/analyse` — orchestre les
       quatre étapes ci-dessus (voir `docs/img/pipeline-v2.drawio`)
 
 ## Chantier 1 — Le gate d'évaluation

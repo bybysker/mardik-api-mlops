@@ -112,21 +112,82 @@ Répercussions déjà révisées : `canary.md`, `tableau-pilotage.md` (+ PDF),
 
 ## État de l'implémentation (2026-09-21)
 
-**Rien n'est encore implémenté.** Tous les fichiers `[STUB]` du README lèvent
-`NotImplementedError` : `app/api_v2.py::analyser_v2`, tout `app/pipeline/*`,
-`app/gateway.py`, `eval/run_eval.py::evaluer`, `ops/deploy.py::*`,
-`ops/dashboard.py::*`. Seuls `app/api_v1.py`, `app/llm_client.py`,
-`app/telemetry.py`, `ops/drift_proxy.py`, `ops/registry/` sont `[FOURNI]`
-et fonctionnels.
+**Chantier 1 point 2 (pipeline `/v2/analyse`) implémenté et testé**, via le
+plan `docs/superpowers/plans/2026-09-21-api-v2-pipeline.md` exécuté en
+subagent-driven development (7 tâches, revue par tâche + revue finale de
+branche complète). `app/pipeline/decoupage.py::decouper`,
+`app/pipeline/extraction.py::extraire`, `app/pipeline/consolidation.py::consolider`,
+`app/pipeline/confiance.py::scorer` et `app/api_v2.py::analyser_v2` (+ route
+`POST /v2/analyse`) sont tous fonctionnels, plus `models/v2/config.yaml`
+(bundle, stratégie `map_reduce_clauses`). Couverture : 27 tests unitaires
+(bundle + pipeline + orchestration) et les 2 tests d'acceptance ciblés
+(`test_contrat_v2_long_analyse_sans_troncature`,
+`test_erreurs_explicites_jamais_de_500`), tous verts.
 
-Deux schémas ont été produits pour documenter, sans encore coder :
+Décisions actées pendant l'implémentation, non documentées ailleurs — détail
+dans `CHANGELOG.md` (entrée du jour) :
+- `seed: 0` fixé dans le bundle v2 (`models/v2/config.yaml`), pour un gate
+  d'évaluation stable.
+- `scorer()` a gagné un paramètre `nb_sections: int` (la formule de
+  corroboration a besoin du nombre total de sections, que `texte` seul ne
+  donne pas) ; `texte` est conservé dans la signature pour compatibilité mais
+  inutilisé pour l'instant.
+- `decoupage.py::decouper` implémente **trois niveaux** (structurel →
+  regroupement des blocs consécutifs jusqu'à `taille_max` → repli taille
+  fixe avec chevauchement) plutôt que les deux esquissés initialement dans le
+  plan — le regroupement est ce qui tient le budget d'appels LLM.
+- `LIMITE_CARACTERES = 250_000` pour le garde-fou 413, vérifié désormais
+  **dans `analyser_v2` elle-même** (pas seulement dans la route HTTP), pour
+  protéger aussi les appelants directs hors HTTP (futur `app/gateway.py`).
+
+**Toujours non implémenté, hors périmètre de ce plan** : `app/gateway.py`,
+`eval/run_eval.py::evaluer`, `ops/deploy.py::*`, `ops/dashboard.py::*` —
+restent `[STUB]`, `NotImplementedError`. Seuls `app/api_v1.py`,
+`app/llm_client.py`, `app/telemetry.py`, `ops/drift_proxy.py`,
+`ops/registry/` étaient `[FOURNI]` et fonctionnels dès le départ ; s'y
+ajoutent maintenant `app/api_v2.py` et tout `app/pipeline/*`.
+
+Deux schémas documentent l'architecture (le second est maintenant à jour
+avec le code réel, pas seulement la cible) :
 
 - le pipeline `/v1/analyse` **réel** (`docs/img/pipeline-v1_reel.drawio`) :
   tout est dans `app/api_v1.py`, seul l'appel LLM est délégué à
   `app/llm_client.py`.
-- le pipeline `/v2/analyse` **cible** (`docs/img/pipeline-v2.drawio`) :
+- le pipeline `/v2/analyse` (`docs/img/pipeline-v2.drawio`) :
   `decoupage → extraction (map, 1 appel LLM/section) → consolidation
-  (reduce) → confiance`, orchestré par `app/api_v2.py`.
+  (reduce) → confiance`, orchestré par `app/api_v2.py` — désormais
+  implémenté tel que schématisé.
+
+### Points connus, non corrigés ici, hors périmètre de ce plan
+
+- **Risque de latence P95 pour le gate d'éval (chantier 1 point 3)** : les
+  appels LLM par section dans `app/api_v2.py::analyser_v2` sont strictement
+  séquentiels (une boucle `for`, pas de parallélisation). Mesuré sur le
+  corpus réel : jusqu'à 20 appels séquentiels pour le contrat le plus long
+  (c12). Invisible en mode `MOCK` (~0,2 ms/appel), donc aucun test ne le
+  détecte — mais le gate d'évaluation tournera contre un vrai modèle et
+  vérifie `latence_p95_ms < 8000`, contrainte que ce comportement va très
+  probablement violer. La marge de coût mesurée est confortable (0,054 €
+  contre 0,15 € de budget pour c12), donc paralléliser (par ex. un
+  `ThreadPoolExecutor` sur les sections, en préservant l'ordre de
+  `par_section` et le rattachement du span `llm.appel` par section) est le
+  correctif naturel pour qui reprendra le chantier 1 point 3 — non fait ici,
+  hors périmètre de ce plan.
+- **Note de calibration découpage/corroboration pour le chantier 2** : le
+  chevauchement (~250 car.) du repli taille fixe peut faire compter une
+  clause à cheval sur deux chunks adjacents comme corroborée par la
+  géométrie du découpage, pas par une détection multiple réellement
+  indépendante ; à l'inverse, le regroupement de `_regrouper` peut fusionner
+  des occurrences d'articles distincts dans une seule section, plafonnant
+  leur corroboration à n=1. Aucun des 12 contrats du corpus ne déclenche
+  aujourd'hui le repli taille fixe, donc ce biais est latent, pas actif —
+  mais à garder en tête pour la calibration du score au chantier 2, puisque
+  le signal de corroboration dépend en partie de la géométrie du découpage,
+  pas seulement d'une détection répétée réelle par le modèle. Fait mesuré à
+  l'appui de cette calibration (pas une nouvelle anomalie — la formule est
+  implémentée telle qu'actée) : **100 % des scores de clause individuels,
+  sur les 12 contrats du corpus, valent actuellement exactement 0,0** (pas
+  seulement le minimum global — chaque clause individuellement).
 
 ## Environnement technique
 

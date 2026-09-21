@@ -2,6 +2,64 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-21 (chantier 1 point 2 : pipeline `/v2/analyse` implémenté, revue de branche, fix wave)
+
+- Les 7 tâches de `docs/superpowers/plans/2026-09-21-api-v2-pipeline.md` ont
+  été implémentées via développement piloté par subagents (un agent
+  implémenteur par tâche, relu et corrigé par un agent contrôleur avant
+  passage à la suivante — détail par tâche :
+  `.superpowers/sdd/2026-09-21-api-v2-pipeline/progress.md`), puis fusionnées
+  sur `dev` : bundle v2 (`models/v2/config.yaml`), découpage
+  (`app/pipeline/decoupage.py::decouper`), extraction
+  (`app/pipeline/extraction.py::extraire`), consolidation
+  (`app/pipeline/consolidation.py::consolider`), score de confiance
+  (`app/pipeline/confiance.py::scorer`), orchestration
+  (`app/api_v2.py::analyser_v2` + route `POST /v2/analyse`).
+- **Relecture finale de la branche complète** (au-delà des revues par tâche)
+  : 4 constats corrigés dans cette même passe (voir plus bas — documentation
+  obsolète, absence de signal télémétrie sur les rejets LLM hors schéma,
+  garde-fou 413 pas assez tôt dans la pile d'appel, nettoyage de docstrings)
+  et une note de calibration hors périmètre consignée dans `MEMORY.md`.
+- Décisions actées pendant l'implémentation, non documentées ailleurs
+  jusqu'ici :
+  - `seed: 0` fixé dans le bundle v2 (`models/v2/config.yaml`), pour un gate
+    d'évaluation stable (point ouvert du stub fourni, tranché ici).
+  - `scorer()` a gagné un paramètre `nb_sections: int` en plus de `texte`
+    (conservé mais inutilisé pour l'instant) : la formule de corroboration
+    actée (`score-confiance.md`) a besoin du nombre total de sections du
+    document, que `texte` seul ne donne pas.
+  - `app/pipeline/decoupage.py::decouper` implémente **trois niveaux**
+    (structurel → regroupement des blocs consécutifs jusqu'à `taille_max` →
+    repli taille fixe avec chevauchement) plutôt que les deux esquissés dans
+    la première version du plan — le regroupement est ce qui tient le budget
+    d'appels LLM (jusqu'à 20× moins d'appels sur les contrats courts).
+  - `LIMITE_CARACTERES = 250_000` pour le garde-fou 413 (document trop
+    long).
+- Correctifs de cette passe de relecture finale (« fix wave ») :
+  - Le garde-fou 413 ne vivait que dans la route HTTP, pas dans
+    `analyser_v2` elle-même — silencieusement contourné par un appel direct
+    hors HTTP (le futur `app/gateway.py`, ou le gate d'évaluation). Déplacé
+    dans `analyser_v2`, avec une nouvelle exception dédiée
+    (`DocumentTropLong`) traduite en 413 par la route ; une `Mesure`
+    d'erreur est désormais journalisée pour ce cas aussi.
+  - Aucun signal télémétrie quand une réponse LLM est rejetée pour non
+    conformité au schéma (JSON invalide, champ manquant, type inconnu,
+    confiance hors bornes) — comportement correct (jamais de crash) mais
+    invisible. Ajout de logs d'avertissement (`logging` standard) dans
+    `extraire()` et de l'attribut `llm.clauses` sur le span `llm.appel`
+    (`app/api_v2.py`).
+  - `MEMORY.md`, `TODO.md`, `CHANGELOG.md` ne reflétaient plus l'état réel
+    (tout marqué non implémenté) — mis à jour dans cette même passe.
+  - Nettoyage : retrait du marqueur `[STUB]` et de « Contrat attendu » dans
+    les docstrings de `app/api_v2.py`, `app/pipeline/confiance.py`,
+    `app/pipeline/consolidation.py`, `app/pipeline/extraction.py` (alignées
+    sur `app/pipeline/decoupage.py`) ; `confiance_globale` arrondie à 3
+    décimales dans la réponse, comme chaque `confiance` de clause.
+- Tests : 30/30 verts (`MOCK=on uv run pytest -v tests/unit/
+  tests/acceptance/test_chaine.py::test_contrat_v2_long_analyse_sans_troncature
+  tests/acceptance/test_chaine.py::test_erreurs_explicites_jamais_de_500`),
+  `uv run ruff check .` propre.
+
 ## 2026-09-21 (chantier 1 point 1 : spec v2 + plan pipeline v2, relecture Opus)
 
 - `docs/spec-v2.md` créée (courte spec v2 : périmètre, exigences, contraintes,
