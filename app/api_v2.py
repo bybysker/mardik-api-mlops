@@ -30,14 +30,21 @@ Règles :
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+import time
+
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from app.llm_client import Bundle, LLMClient
-from app.telemetry import Telemetry, build_default_telemetry
+from app.llm_client import Bundle, ErreurLLM, LLMClient
+from app.pipeline.confiance import Clause, scorer
+from app.pipeline.consolidation import consolider
+from app.pipeline.decoupage import decouper
+from app.pipeline.extraction import extraire
+from app.telemetry import Mesure, Telemetry, build_default_telemetry
 
 router = APIRouter(prefix="/v2", tags=["v2"])
 VERSION_V2 = "v2"
+LIMITE_CARACTERES = 250_000
 
 
 class RequeteAnalyseV2(BaseModel):
@@ -76,7 +83,77 @@ def get_telemetry() -> Telemetry:
 
 
 def analyser_v2(texte: str, client: LLMClient, telemetry: Telemetry) -> ReponseAnalyseV2:
-    raise NotImplementedError("api_v2.analyser_v2 — le contrat v2 (map-reduce par clauses)")
+    bundle = client.bundle
+    taille_max = int(bundle.parametres.get("contexte_max_caracteres", 6000))
+    debut = time.perf_counter()
+    with telemetry.tracer.start_as_current_span("analyse.requete") as span:
+        span.set_attribute("mardik.version", bundle.version)
+        sections = decouper(texte, taille_max)
+        span.set_attribute("mardik.sections", len(sections))
+
+        par_section: list[list[Clause]] = []
+        appels_llm = 0
+        tokens_total = 0
+        cout_total = 0.0
+        try:
+            for section in sections:
+                with telemetry.tracer.start_as_current_span("llm.appel") as span_llm:
+                    clauses, reponse = extraire(section, client)
+                    span_llm.set_attribute("llm.latence_ms", reponse.latence_ms)
+                    span_llm.set_attribute("llm.tokens", reponse.tokens)
+                par_section.append(clauses)
+                appels_llm += 1
+                tokens_total += reponse.tokens
+                cout_total += client.cout_eur(reponse)
+        except ErreurLLM as exc:
+            telemetry.metriques.enregistrer(
+                Mesure(
+                    ts=time.time(),
+                    version=bundle.version,
+                    route="/v2/analyse",
+                    latence_ms=(time.perf_counter() - debut) * 1000,
+                    erreur=True,
+                )
+            )
+            telemetry.logger.error("analyse.echec", version=bundle.version, cause=str(exc))
+            raise
+
+        clauses_consolidees = consolider(par_section)
+        clauses_notees, confiance_globale = scorer(clauses_consolidees, len(sections), texte)
+        latence = (time.perf_counter() - debut) * 1000
+        telemetry.metriques.enregistrer(
+            Mesure(
+                ts=time.time(),
+                version=bundle.version,
+                route="/v2/analyse",
+                latence_ms=latence,
+                score=confiance_globale,
+                cout_eur=cout_total,
+                appels_llm=appels_llm,
+                tokens=tokens_total,
+                tronque=False,
+            )
+        )
+        telemetry.logger.info(
+            "analyse.terminee",
+            version=bundle.version,
+            latence_ms=round(latence, 1),
+            clauses=len(clauses_notees),
+            sections=len(sections),
+        )
+    return ReponseAnalyseV2(
+        clauses=[
+            ClauseV2(type=c.type, extrait=c.extrait, confiance=round(c.confiance, 3), sections=c.sections)
+            for c in clauses_notees
+        ],
+        confiance_globale=confiance_globale,
+        modele=bundle.modele,
+        version=bundle.version,
+        sections=len(sections),
+        appels_llm=appels_llm,
+        latence_ms=latence,
+        cout_eur=cout_total,
+    )
 
 
 @router.post("/analyse", response_model=ReponseAnalyseV2)
@@ -85,5 +162,12 @@ def analyse(
     client: LLMClient = Depends(get_client_v2),
     telemetry: Telemetry = Depends(get_telemetry),
 ) -> ReponseAnalyseV2:
-    # À faire : appeler analyser_v2 et traduire ErreurLLM en 503 explicite (voir api_v1).
-    raise NotImplementedError("api_v2.analyse — la route POST /v2/analyse")
+    if len(requete.texte) > LIMITE_CARACTERES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"document trop long ({len(requete.texte)} caractères, max {LIMITE_CARACTERES})",
+        )
+    try:
+        return analyser_v2(requete.texte, client, telemetry)
+    except ErreurLLM as exc:
+        raise HTTPException(status_code=503, detail=f"fournisseur LLM indisponible : {exc}")
