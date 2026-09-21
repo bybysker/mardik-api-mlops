@@ -22,10 +22,36 @@ Indices : ``app.llm_client.TYPES_CLAUSES`` liste les types valides ;
 """
 from __future__ import annotations
 
-from app.llm_client import LLMClient, ReponseLLM
+from app.llm_client import ErreurLLM, LLMClient, ReponseLLM, TYPES_CLAUSES
 from app.pipeline.confiance import Clause
 from app.pipeline.decoupage import Section
 
 
 def extraire(section: Section, client: LLMClient) -> tuple[list[Clause], ReponseLLM]:
-    raise NotImplementedError("pipeline.extraction.extraire — un appel LLM par section, JSON contraint")
+    prompt_utilisateur = f"{section.titre}\n\n{section.texte}"
+    reponse = client.completer(prompt_utilisateur, json_mode=True)
+
+    clauses: list[Clause] = []
+    try:
+        data = reponse.json()
+    except ErreurLLM:
+        return clauses, reponse
+
+    brutes = data.get("clauses", []) if isinstance(data, dict) else []
+    types_connus = set(TYPES_CLAUSES)
+    for item in brutes:
+        if not isinstance(item, dict):
+            continue
+        type_ = item.get("type")
+        extrait = item.get("extrait")
+        confiance = item.get("confiance")
+        if type_ not in types_connus:
+            continue
+        if not isinstance(extrait, str) or not extrait.strip():
+            continue
+        if not isinstance(confiance, (int, float)) or not (0.0 <= confiance <= 1.0):
+            continue
+        clauses.append(
+            Clause(type=type_, extrait=extrait.strip(), confiance_llm=float(confiance), sections=[section.indice])
+        )
+    return clauses, reponse
