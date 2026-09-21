@@ -1,0 +1,26 @@
+meta {
+  name: Analyse v2 - exemple
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8000/v2/analyse
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "texte": "Le présent contrat est conclu pour une durée de 12 mois, renouvelable par tacite reconduction sauf dénonciation avec un préavis de deux mois. En cas de résiliation anticipée pour faute grave, la partie défaillante s'expose à une pénalité de retard de 1 % par semaine sur les sommes dues. Le prix des prestations est fixé à 15 000 euros HT, payable à réception de facture. Les parties s'engagent à une stricte confidentialité sur les informations échangées. Le présent contrat est soumis au droit français, tout litige relève des tribunaux de Paris.",
+    "contrat_id": "demo-01"
+  }
+}
+
+docs {
+  Exemple court, modifiable directement. `/v2/analyse` est un stub tant que
+  le pipeline (découpage/extraction/consolidation/confiance) n'est pas
+  implémenté : renvoie NotImplementedError pour l'instant. Pour tester la
+  non-troncature sur un vrai contrat long une fois le pipeline codé,
+  reprendre le texte de `eval/contrats/c12.txt`.
+}

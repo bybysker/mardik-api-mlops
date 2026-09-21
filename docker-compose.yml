@@ -28,8 +28,21 @@ services:
     env_file: .env
     environment:
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      AZURE_AI_ENDPOINT: http://azure-adapter:9000
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - azure-adapter
+
+  # Adaptateur Azure — NON fourni, voir ops/azure_adapter.py (docstring).
+  # Corrige deux écarts entre le proxy fourni et l'API /openai/v1 de cette
+  # ressource Azure : api-version non supportée, max_tokens → max_completion_tokens.
+  azure-adapter:
+    build: .
+    command: python -m ops.azure_adapter
+    env_file: .env
+    environment:
+      AZURE_AI_REAL_ENDPOINT: ${AZURE_AI_ENDPOINT}
 
   # Le tableau de bord (à implémenter : ops/dashboard.py).
   dashboard:

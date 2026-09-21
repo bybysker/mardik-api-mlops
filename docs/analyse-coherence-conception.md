@@ -41,13 +41,15 @@
   conforme à la décision « incrément du patch au build validé, jamais à la
   fusion » (`docs/versionnage.md`).
 
-## Point de conflit ouvert — fenêtre glissante (comptage vs. temporelle)
+## Conflit résolu — fenêtre glissante (comptage vs. temporelle)
 
-**Décision actée** (`conception/pilotage/fenetre-glissante-seuils.md`) :
-fenêtre **en nombre de requêtes** (50 dernières, minimum 30 avant décision),
-en écartant explicitement une fenêtre temporelle : *« le volume est faible
-(~400 contrats/mois ≈ 13/jour) ; une fenêtre temporelle contiendrait très peu
-de requêtes et serait trop sensible au hasard »*.
+**Décision actée dans le dossier de conception**
+(`conception/pilotage/fenetre-glissante-seuils.md`, dépôt
+`mardik_nouvelle_version`) : fenêtre **en nombre de requêtes** (50 dernières,
+minimum 30 avant décision), en écartant explicitement une fenêtre
+temporelle : *« le volume est faible (~400 contrats/mois ≈ 13/jour) ; une
+fenêtre temporelle contiendrait très peu de requêtes et serait trop sensible
+au hasard »*.
 
 **Ce qu'impose le code fourni** : les tests d'acceptance, figés, appellent :
 
@@ -62,19 +64,32 @@ comptage de requêtes. `minimum` reste un garde-fou anti-faux-positifs (comme
 prévu dans la conception), mais la dimension principale de la fenêtre est le
 temps, pas le nombre.
 
-**Conséquence** : ces tests n'étant pas modifiables, l'implémentation de
-`ops.deploy.surveiller` et `ops.dashboard.resume` devra être temporelle,
-contredisant la décision actée et présentée dans le dossier de conception.
+**Décision (2026-09-21)** : garder les tests d'acceptance fournis tels
+quels — ce sont les critères de réussite du brief, pas un détail
+d'implémentation à ajuster à notre convenance — et **revenir sur la fenêtre
+en nombre de requêtes** plutôt que de modifier les tests. L'implémentation
+sera donc **temporelle** (`fenetre_s`), avec `minimum` comme garde-fou
+anti-bruit, conformément à l'interface exigée par le code et les tests.
 
-**Statut : non tranché, volontairement laissé ouvert** (choix de
-l'utilisateur, 2026-09-21). Options envisagées à ce stade, à retrancher plus
-tard (chantier 2, calibration des seuils) :
+Les documents de conception affectés (`conception/pilotage/
+fenetre-glissante-seuils.md`, `canary.md`, `tableau-pilotage.md` et
+`conception/chantier2_observabilite/questions_reponses.md` Q9/Q10/Q12/Q14,
+dépôt `mardik_nouvelle_version`) n'ont volontairement **pas été modifiés** à
+la source. Leurs versions révisées vivent dans
+[`docs/conception_revue/`](conception_revue/) de ce dépôt-ci :
 
-1. Réviser `fenetre-glissante-seuils.md` pour adopter une fenêtre
-   temporelle, en cohérence avec l'interface imposée par le code.
-2. Solution hybride : conserver `fenetre_s` comme paramètre d'interface
-   (pour les tests) mais plafonner en interne à N=50 dernières mesures dans
-   cette fenêtre.
+- [`conception_revue/pilotage/fenetre-glissante-seuils.md`](conception_revue/pilotage/fenetre-glissante-seuils.md)
+  — la décision révisée elle-même, avec la justification complète.
+- [`conception_revue/pilotage/canary.md`](conception_revue/pilotage/canary.md)
+  — fenêtre d'observation alignée (120 s).
+- [`conception_revue/pilotage/tableau-pilotage.md`](conception_revue/pilotage/tableau-pilotage.md)
+  — livrable révisé.
+- [`conception_revue/chantier2_observabilite/questions_reponses.md`](conception_revue/chantier2_observabilite/questions_reponses.md)
+  — Q9/Q10/Q12/Q14 révisées.
+
+Ces fichiers révisés font foi pour l'implémentation dans ce dépôt. En cas de
+retour au dossier de conception d'origine, il faudra y répercuter ce
+changement.
 
 ## Points mineurs sans action (à garder en tête)
 

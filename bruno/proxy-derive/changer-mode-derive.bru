@@ -1,0 +1,21 @@
+meta {
+  name: Changer le mode de derive
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/_drift
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "mode": "score"
+  }
+}
+
+docs {
+  Modes possibles : off | latence | erreurs | score
+}

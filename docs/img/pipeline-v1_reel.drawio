@@ -1,0 +1,139 @@
+<mxfile host="app.diagrams.net" agent="claude-code" version="24.7.7">
+  <diagram id="pipeline-v1-reel" name="Pipeline v1 (réel)">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2300" pageHeight="880" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===================== TITRE ===================== -->
+        <mxCell id="titre" value="Pipeline /v1/analyse — tel qu'implémenté (réel, monolithique)&#10;Tout est dans app/api_v1.py (route, troncature, parsing, erreurs) — seul l'appel LLM est délégué à app/llm_client.py" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="120" y="10" width="1750" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== CADRE DE FICHIER : llm_client.py (seul fichier délégué) ===================== -->
+        <mxCell id="frame-llm" value="📁 app/llm_client.py — seul fichier délégué" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;dashed=1;verticalAlign=top;fontSize=10;fontStyle=1;fontColor=#7F5300;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="760" y="240" width="340" height="490" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== LÉGENDE ===================== -->
+        <mxCell id="legende-cadre" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#999999;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1960" y="70" width="300" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="legende-titre" value="Légende" style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1978" y="78" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-etape" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="1978" y="106" width="26" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-etape-txt" value="Étape (fichier :: fonction)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="2012" y="106" width="240" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-decision" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="1978" y="140" width="26" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-decision-txt" value="Décision (branchement réel du code)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="2012" y="140" width="250" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-donnee" value="" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="1978" y="174" width="26" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-donnee-txt" value="Réponse HTTP finale" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="2012" y="174" width="240" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-note" value="" style="shape=note;whiteSpace=wrap;html=1;size=10;fillColor=#F5F5F5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1978" y="208" width="26" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-note-txt" value="Précision tirée du code réel" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="2012" y="208" width="240" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-erreur" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" vertex="1" parent="1">
+          <mxGeometry x="1978" y="242" width="26" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="leg-erreur-txt" value="Sortie en erreur (503)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="2012" y="242" width="240" height="26" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== ACTEUR ===================== -->
+        <mxCell id="acteur" value="Client v1&#10;(scripts/client_v1.py)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="25" y="285" width="50" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== FLUX PRINCIPAL ===================== -->
+        <mxCell id="e1" value="app/api_v1.py&#10;analyse() → analyser_v1()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="160" y="280" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d1" value="len(texte) >&#10;contexte_max_caracteres ?&#10;(16 000 car.)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="255" width="240" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n1" value="Défaut connu de la v1 : la coupe se&#10;fait AVANT l'appel LLM, sans avertir&#10;— les clauses de fin (résiliation,&#10;pénalités, droit applicable) sont&#10;perdues sur les contrats longs.&#10;C'est la raison d'être de la v2&#10;(aucune troncature)." style="shape=note;whiteSpace=wrap;html=1;size=12;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="450" y="80" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="an1" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;strokeColor=#82B366;strokeWidth=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="d1" target="n1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e2" value="app/llm_client.py&#10;LLMClient.completer()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="820" y="280" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n2" value="MOCK=on (réservé à la CI) : rejoue&#10;eval/fixtures/*.json (clé = empreinte&#10;du prompt), ou reconstruit une&#10;réponse déterministe par mots-clés&#10;si aucune fixture ne correspond.&#10;Sinon : appel réseau réel via&#10;ops/drift_proxy.py (transparent si&#10;DRIFT=off) vers Ollama ou Azure." style="shape=note;whiteSpace=wrap;html=1;size=12;fillColor=#F5F5F5;strokeColor=#666666;fontSize=10;align=left;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="780" y="520" width="300" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="an2" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=none;strokeColor=#82B366;strokeWidth=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="e2" target="n2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d3" value="appel réussi ?&#10;(réseau réel&#10;uniquement)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="255" width="220" height="150" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e-err" value="ErreurLLM levée&#10;(HTTP, timeout, réponse vide —&#10;jamais si MOCK=on)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="560" width="280" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e-terminal" value="Mesure(erreur=True) + log&#10;analyse.echec → HTTP 503&#10;(detail explicite, jamais 500 brut)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="710" width="260" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e4" value="app/api_v1.py&#10;_parser_clauses()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=11;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1460" y="280" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="d-out" value="ReponseAnalyseV1 200&#10;clauses, modele, version,&#10;tronque&#10;(+ Mesure → ops/metrics.jsonl,&#10;log analyse.terminee)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1795" y="255" width="150" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== ARÊTES DU FLUX PRINCIPAL ===================== -->
+        <mxCell id="f0" value="POST /v1/analyse" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#6C8EBF;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=10;fontColor=#1E4E79;" edge="1" parent="1" source="acteur" target="e1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f1" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeColor=#6C8EBF;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="e1" target="d1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f2a" value="oui — tronqué" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#6C8EBF;strokeWidth=2;exitX=0.5;exitY=1;entryX=0;entryY=0.75;fontSize=9;fontColor=#1E4E79;" edge="1" parent="1" source="d1" target="e2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f2b" value="non — intact" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#6C8EBF;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.25;fontSize=9;fontColor=#1E4E79;" edge="1" parent="1" source="d1" target="e2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f3" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeColor=#6C8EBF;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="e2" target="d3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f4" value="non — échec" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#B85450;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;fontSize=9;fontColor=#B85450;" edge="1" parent="1" source="d3" target="e-err">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f4b" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeColor=#B85450;strokeWidth=1;dashed=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="e-err" target="e-terminal">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f5" value="oui" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeColor=#6C8EBF;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;fontSize=9;fontColor=#1E4E79;fontStyle=1;" edge="1" parent="1" source="d3" target="e4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="f6" style="edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;endFill=1;strokeColor=#6C8EBF;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="e4" target="d-out">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
