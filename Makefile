@@ -46,6 +46,7 @@ fixtures:           ## (ré)enregistre les fixtures MOCK en appelant le vrai mod
 
 ci:                 ## l'équivalent local du workflow GitHub (MOCK=on)
 	uv run ruff check .
+	MOCK=on uv run pytest -q tests/unit
 	MOCK=on uv run pytest -q tests/integration
 	MOCK=on uv run pytest -q tests/acceptance
 	@echo "TODO gate d'évaluation / publication / canary : voir .github/workflows/llmops.yml"
