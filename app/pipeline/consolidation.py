@@ -18,4 +18,24 @@ from app.pipeline.confiance import Clause
 
 
 def consolider(par_section: list[list[Clause]]) -> list[Clause]:
-    raise NotImplementedError("pipeline.consolidation.consolider — fusion + dédoublonnage")
+    par_type: dict[str, Clause] = {}
+    ordre: list[str] = []
+    for clauses_section in par_section:
+        for clause in clauses_section:
+            existante = par_type.get(clause.type)
+            if existante is None:
+                par_type[clause.type] = Clause(
+                    type=clause.type,
+                    extrait=clause.extrait,
+                    confiance_llm=clause.confiance_llm,
+                    sections=list(clause.sections),
+                )
+                ordre.append(clause.type)
+            else:
+                if len(clause.extrait) > len(existante.extrait):
+                    existante.extrait = clause.extrait
+                existante.confiance_llm = max(existante.confiance_llm, clause.confiance_llm)
+                for idx in clause.sections:
+                    if idx not in existante.sections:
+                        existante.sections.append(idx)
+    return [par_type[t] for t in ordre]
