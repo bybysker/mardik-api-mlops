@@ -29,6 +29,7 @@ uv.lock
 eval/history.jsonl
 eval/.metrics_eval.jsonl
 ops/metrics.jsonl
+ops/metrics_v2.jsonl
 ops/registry/journal.jsonl
 ops/registry/v[2-9].*/
 ops/registry/v1.[1-9]*/

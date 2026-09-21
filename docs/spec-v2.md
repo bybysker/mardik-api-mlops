@@ -80,6 +80,14 @@ Source : `docs/besoin_client.md`, `MEMORY.md`.
 - Le `docker-compose.yml` actuel (un seul service `app` montant les trois
   routers v1/v2/gateway ensemble) reste un confort de dev/test local ; ce
   n'est pas l'architecture de déploiement canary cible décrite ci-dessus.
+- **État de mise en œuvre (2026-09-21, partiel)** : les containers `v2`
+  (port hôte 8001, `uvicorn app.main:create_app_v2 --factory`) et
+  `serveur_pilotage` (port hôte 8002, squelette `ops/serveur_pilotage.py`)
+  existent dans le `docker-compose.yml`, à partir de la même image que `app`.
+  Le rôle est porté par la commande uvicorn, pas par une variable
+  d'environnement. Restent à faire : container v1 isolé, container gateway et
+  Caddy en frontal. Détail :
+  `docs/superpowers/specs/2026-09-21-v2-pilotage-containers-design.md`.
 
 Source : `conception_figee/docs/adr/0001-outil-pilotage-maison.md`,
 `conception_figee/chantier1_llmops/img/chaine-llmops.png`. Topologie

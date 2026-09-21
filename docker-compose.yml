@@ -19,6 +19,32 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"   # pour joindre Ollama sur la machine hôte
 
+  # La v2 seule, dans son propre container (rôle « v2 » — docs/spec-v2.md §4).
+  # Même image que `app` : un artefact, un rôle par container. Le rôle vient de
+  # la commande (--factory), jamais d'une variable d'environnement.
+  v2:
+    build: .
+    command: uvicorn app.main:create_app_v2 --factory --host 0.0.0.0 --port 8000
+    ports:
+      - "8001:8000"
+    env_file: .env
+    environment:
+      LLM_PROXY_URL: http://proxy:8080
+      METRICS_PATH: /app/ops/metrics_v2.jsonl   # journal distinct de celui d'`app`
+      REGISTRY_PATH: /app/ops/registry
+    volumes:
+      - ./ops:/app/ops
+      - ./models:/app/models
+      - ./eval:/app/eval
+    depends_on:
+      - proxy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
   # Le proxy de dérive, entre l'app et le fournisseur LLM (Azure ou Ollama).
   proxy:
     build: .
@@ -58,3 +84,20 @@ services:
       - ./ops:/app/ops
     depends_on:
       - app
+
+  # Le serveur de pilotage — SQUELETTE (ops/serveur_pilotage.py) : les 6 routes
+  # du contrat gelé répondent 501, la logique est le chantier 2. Ni env_file ni
+  # METRICS_PATH : à ce stade le module ne lit et n'écrit aucun fichier.
+  serveur_pilotage:
+    build: .
+    command: uvicorn ops.serveur_pilotage:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./ops:/app/ops
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s

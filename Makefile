@@ -59,5 +59,5 @@ fmt:
 	uv run ruff check --fix .
 
 clean:
-	rm -rf .pytest_cache .ruff_cache ops/metrics.jsonl eval/history.jsonl eval/.metrics_eval.jsonl
+	rm -rf .pytest_cache .ruff_cache ops/metrics.jsonl ops/metrics_v2.jsonl eval/history.jsonl eval/.metrics_eval.jsonl
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +

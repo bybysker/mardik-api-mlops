@@ -189,6 +189,47 @@ avec le code réel, pas seulement la cible) :
   sur les 12 contrats du corpus, valent actuellement exactement 0,0** (pas
   seulement le minimum global — chaque clause individuellement).
 
+## Topologie — où en est-on de « un artefact, un rôle par container » (2026-09-21)
+
+`docs/spec-v2.md` §4 vise un artefact Docker unique et un rôle par container
+(v1, v2, gateway) derrière Caddy. **Partiellement en place** :
+
+| Service compose | Port hôte → container | Rôle |
+|---|---|---|
+| `app` | 8000 → 8000 | complet (v1 + v2 + gateway), confort de dev — inchangé |
+| `v2` | 8001 → 8000 | `/v2/analyse` + `/health` (`create_app_v2`) |
+| `serveur_pilotage` | 8002 → 8000 | squelette `/pilotage/*` (501) + `/health` |
+| `proxy` | 8080 → 8080 | proxy de dérive |
+| `dashboard` | 8501 → 8501 | tableau de bord (stub) — inchangé |
+| `azure-adapter` | interne 9000 | adaptateur Azure |
+
+Reste à faire : container v1 isolé, container gateway, Caddy en frontal.
+Conception : `docs/superpowers/specs/2026-09-21-v2-pilotage-containers-design.md`.
+
+- **Ce sont des ports différents qui étaient voulus, pas des IP fixes** (demande
+  initiale ambiguë, précisée par l'utilisateur) : pas de réseau Docker
+  personnalisé.
+- **Le rôle vient de la commande uvicorn, jamais d'une variable
+  d'environnement** (`--factory` sur `app.main:create_app_v2`). Raison : le
+  `.env` est partagé par tous les services et `tests/conftest.py` [FOURNI] ne
+  neutralise aucune variable de rôle ; une variable perdue aurait pu retirer
+  `/v1` au service `app`. À ne pas ré-introduire.
+- **`app` et `v2` ont des journaux de métriques distincts** :
+  `ops/metrics.jsonl` et `ops/metrics_v2.jsonl`. `Mesure` [FOURNI] n'a pas de
+  champ identifiant le container, deux journaux étaient le seul moyen de ne
+  pas mélanger les mesures. `ops/dashboard.py` et `ops/deploy.py::surveiller`
+  ne lisent encore que `ops/metrics.jsonl` (chantier 2).
+- **Les 3 routes d'écriture du serveur de pilotage valident leur corps** avec
+  les modèles du contrat gelé : corps valide → 501, corps invalide → 422.
+- **`GET /health` du serveur de pilotage est hors contrat gelé**, non
+  normatif : il n'existe que pour le healthcheck du container.
+- Healthchecks en Python (`urllib.request`) et non `curl` : l'image
+  `python:3.11-slim` n'embarque pas `curl`.
+- Le service `dashboard` (8501) et la route `GET /pilotage/dashboard` font
+  double emploi : arbitrage renvoyé au chantier 2.
+- Tests : `MOCK=on uv run pytest -q` → **54 passed, 7 failed** (les 7 rouges
+  attendent `ops/deploy.py`, `eval/run_eval.py`, `ops/dashboard.py`).
+
 ## En cours / point ouvert (2026-09-21)
 
 **Chantier 1, point 3 (chaîne `llmops.yml` : gates → build → artefact

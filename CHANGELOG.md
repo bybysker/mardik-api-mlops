@@ -2,6 +2,74 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-21 (topologie : containers `v2` et `serveur_pilotage`, ports distincts)
+
+- Première étape concrète vers la topologie cible de `docs/spec-v2.md` §4
+  (« un artefact, un rôle par container ») : deux nouveaux services dans
+  `docker-compose.yml`, chacun sur son port hôte, à partir de la **même
+  image** que `app`. Demande initiale : « v2 dans son docker avec son ip,
+  serveur_pilotage dans son docker avec son ip » — précisée en cours de
+  brainstorming : ce sont des **ports** différents qui étaient voulus, pas des
+  IP fixes (pas de réseau Docker personnalisé). Conception :
+  `docs/superpowers/specs/2026-09-21-v2-pilotage-containers-design.md`
+  (relue par un agent Opus, deux points bloquants corrigés avant le plan),
+  plan : `docs/superpowers/plans/2026-09-21-v2-pilotage-containers.md`.
+- **`app/main.py`** gagne une fabrique `create_app_v2()` qui ne monte que le
+  router `api_v2` (+ `/health`, télémétrie et handler 501, factorisés dans un
+  helper privé `_creer` partagé avec `create_app`). `create_app()`, son
+  comportement et `app = create_app()` sont inchangés — les 37 tests verts
+  préexistants le vérifient. `app/api_v1.py` n'a pas été touché.
+- **Décision : le rôle vient de la commande uvicorn, pas d'une variable
+  d'environnement.** Une variable `ROLE` avait été envisagée puis écartée en
+  relecture critique : `.env` est partagé par tous les services du compose et
+  `tests/conftest.py` [FOURNI] ne la neutralise pas, donc une variable perdue
+  dans un shell, dans la CI ou dans `.env` aurait pu retirer `/v1` au service
+  `app` — en contradiction avec `docs/spec-v2.md` §3 (« v1 jamais
+  interrompue »). `--factory` supprime le problème à la racine.
+- **`ops/serveur_pilotage.py`** (nouveau) : squelette FastAPI du serveur de
+  pilotage. Les 6 routes du contrat gelé
+  (`conception_figee/pilotage/openapi-pilotage.json`, écart vérifié à zéro par
+  script) répondent **501** ; les 3 routes d'écriture déclarent les modèles
+  Pydantic du contrat (`AjustementSeuil`, `Promotion`, `Rollback`), donc un
+  corps invalide est refusé en **422** avant le handler. `GET /health` est une
+  extension hors contrat, non normative, nécessaire au healthcheck. Le module
+  ne lit et n'écrit aucun fichier à ce stade.
+- **Décision : `METRICS_PATH=/app/ops/metrics_v2.jsonl` pour le service
+  `v2`.** `app` et `v2` servent tous deux `/v2/analyse` et la dataclasse
+  `Mesure` (`app/telemetry.py` [FOURNI]) n'a aucun champ identifiant le
+  container : sans journaux distincts, les mesures des deux instances
+  seraient indiscernables pour `ops/dashboard.py::resume` et
+  `ops/deploy.py::surveiller`. Conséquence assumée : ces deux modules ne
+  lisent pas encore `metrics_v2.jsonl` — leur adaptation est le chantier 2.
+  `.gitignore` et `make clean` couvrent le nouveau fichier.
+- Healthchecks Python (`urllib.request`) sur `/health` pour les deux nouveaux
+  services : l'image `python:3.11-slim` n'embarque pas `curl`, et
+  `docker compose up -d --build --wait` ne doit rendre la main qu'une fois
+  les services prêts.
+- Le service `dashboard` (8501) reste **inchangé** : l'arbitrage entre
+  `ops/dashboard.py` et la route `/pilotage/dashboard` du contrat gelé est
+  explicitement renvoyé au chantier 2.
+- Tests : 17 tests unitaires ajoutés (`tests/unit/test_fabrique_app_v2.py`,
+  5 ; `tests/unit/test_serveur_pilotage.py`, 12).
+  `MOCK=on uv run pytest -q` → **54 passed, 7 failed** (contre 37/7 avant ;
+  les 7 rouges sont inchangés, ils attendent `ops/deploy.py`,
+  `eval/run_eval.py` et `ops/dashboard.py`). `uv run ruff check .` vert.
+- Vérification réelle : `docker compose up -d --build --wait` (6 services,
+  `v2` et `serveur_pilotage` `healthy`), puis `localhost:8001/health` → 200,
+  `POST localhost:8001/v1/analyse` → 404, `localhost:8002/health` → 200,
+  `localhost:8002/pilotage/journal` → 501, `POST .../pilotage/rollback` → 501
+  (corps valide) et 422 (corps invalide), et non-régression de `app` :
+  `localhost:8000/health` → 200, `POST localhost:8000/v1/analyse` → 200,
+  `localhost:8000/gateway/etat` → 501. Journaux séparés confirmés : un appel
+  sur `v2` ajoute une ligne à `ops/metrics_v2.jsonl` et aucune à
+  `ops/metrics.jsonl`.
+- Deux écarts assumés par rapport au plan : `make clean` n'a été vérifié qu'en
+  dry-run (`make -n clean`) car l'exécuter aurait supprimé `ops/metrics.jsonl`
+  (fichier généré, ignoré par git, irrécupérable) ; et la stack n'a pas été
+  arrêtée à la fin (`docker compose down` omis) parce qu'elle tournait déjà
+  avant la vérification — les 4 services existants ont été recréés par
+  `up --build`, la stack reste démarrée.
+
 ## 2026-09-21 (chantier 1 point 2 : pipeline `/v2/analyse` implémenté, revue de branche, fix wave)
 
 - Les 7 tâches de `docs/superpowers/plans/2026-09-21-api-v2-pipeline.md` ont

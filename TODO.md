@@ -76,6 +76,20 @@
 
 ## Chantier 2 — Pilotage
 
+- [x] Squelette `ops/serveur_pilotage.py` : 6 routes du contrat gelé en 501,
+      corps validés par les modèles Pydantic du contrat, `/health` pour le
+      healthcheck (service compose `serveur_pilotage`, port hôte 8002)
+- [ ] Logique du serveur de pilotage : lecture de `ops/metrics.jsonl`,
+      décisions (fenêtre 120 s / 300 s, minimum 10 mesures — voir
+      `docs/conception_revue/pilotage/fenetre-glissante-seuils.md`), écriture
+      du registre et de `ops/journal_pilotage.jsonl`, régénération du Caddyfile
+- [ ] Arbitrage `ops/dashboard.py` (service `dashboard`, 8501) vs la route
+      `GET /pilotage/dashboard` du contrat gelé — deux tableaux de bord
+      coexistent depuis l'ajout du service `serveur_pilotage`
+- [ ] Faire lire `ops/metrics_v2.jsonl` (service `v2`) par `ops/dashboard.py`
+      et `ops/deploy.py::surveiller`, qui ne connaissent que
+      `ops/metrics.jsonl` — condition pour que le trafic du container `v2`
+      soit visible dans la surveillance
 - [ ] `app/gateway.py::choisir_version/etat/analyse` — routage canary
 - [ ] `docs/exploitation.md` — gabarit fourni à compléter (7 sections)
 
@@ -84,6 +98,11 @@
 - [x] Environnement Docker démarré (`make up`), fournisseur Azure configuré
       (`.env`) — voir `ops/azure_adapter.py` pour l'adaptation nécessaire
       (api-version, max_tokens → max_completion_tokens)
+- [x] Containers `v2` (8001) et `serveur_pilotage` (8002) ajoutés au
+      `docker-compose.yml`, healthchecks Python sur `/health`, vérifiés avec
+      `docker compose up -d --build --wait`
+- [ ] Topologie cible complète de `docs/spec-v2.md` §4 : container v1 isolé,
+      container gateway, Caddy en frontal — non entamée
 - [x] Vérifier que les tests d'intégration v1 restent verts (`make test-integration`)
 - [ ] `make test-acceptance` : 9 rouges / 1 vert au départ (`test_client_v1_fonctionne`),
       objectif = tout vert
