@@ -63,6 +63,15 @@
   `localhost:8000/gateway/etat` → 501. Journaux séparés confirmés : un appel
   sur `v2` ajoute une ligne à `ops/metrics_v2.jsonl` et aucune à
   `ops/metrics.jsonl`.
+- Documentation du dépôt parent, à la demande de l'utilisateur (exception
+  explicite à la règle « ne rien écrire hors de `mardik-api-mlops/` »,
+  `conception_figee/` restant intact) : `../AGENTS.md` et `../MEMORY.md`
+  mis à jour pour le renommage `conception/` → `conception_figee/` (chemins
+  corrigés, gel en lecture seule, renvoi vers ce dépôt, mention que le parent
+  n'a plus de `.git`). `../TODO.md` et `../CHANGELOG.md` gardent l'ancien nom :
+  historique de la phase de conception, volontairement non réécrit.
+  `README.md` de ce dépôt : tableau des services compose (ports 8000/8001/
+  8002/8080/8501) et arborescence à jour.
 - Deux écarts assumés par rapport au plan : `make clean` n'a été vérifié qu'en
   dry-run (`make -n clean`) car l'exécuter aurait supprimé `ops/metrics.jsonl`
   (fichier généré, ignoré par git, irrécupérable) ; et la stack n'a pas été

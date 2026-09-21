@@ -38,7 +38,7 @@ Lisez d'abord `docs/besoin_client.md`. Puis `docs/schema_remediation.md`.
 make install                 # uv sync
 cp .env.example .env         # choisir le fournisseur : ollama (gratuit) ou azure (clé API)
 ollama pull llama3.2:3b      # si LLM_PROVIDER=ollama
-make up                      # app :8000, proxy de dérive :8080, dashboard :8501
+make up                      # app :8000, v2 :8001, pilotage :8002, proxy :8080, dashboard :8501
 ```
 
 Sans docker : `make proxy` dans un terminal, `make serve` dans un autre.
@@ -72,14 +72,30 @@ make test-acceptance         # 9 rouges, 1 vert : l'état attendu du lundi matin
 
 Déploiement : `python -m ops.deploy publier v2.0.0 | canary v2.0.0 --pourcentage 10 | promouvoir v2.0.0 | rollback | surveiller --boucle`.
 
+## Services docker compose
+
+| Service | Port hôte | Rôle |
+|---|---|---|
+| `app` | 8000 | v1 + v2 + gateway ensemble (confort de dev) |
+| `v2` | 8001 | `/v2/analyse` seule (`create_app_v2`), métriques dans `ops/metrics_v2.jsonl` |
+| `serveur_pilotage` | 8002 | squelette `/pilotage/*` (501), `/health` |
+| `proxy` | 8080 | proxy de dérive |
+| `dashboard` | 8501 | tableau de bord (texte/HTML) |
+
+`v2` et `serveur_pilotage` réutilisent l'image de `app` : le rôle est choisi par la
+commande de lancement, pas par une variable d'environnement. Vérifier :
+`curl localhost:8001/health`, `curl localhost:8002/health`. Détail :
+`docs/superpowers/specs/2026-09-21-v2-pilotage-containers-design.md`.
+
 ## Arborescence
 
 ```
-app/          main.py (FastAPI), api_v1.py [INTOUCHABLE], api_v2.py [STUB], gateway.py [STUB],
-              llm_client.py [FOURNI], telemetry.py [FOURNI], pipeline/ [STUBS]
-models/       v1/config.yaml [FOURNI], v2/config.yaml [À COMPLÉTER]
+app/          main.py (FastAPI : create_app + create_app_v2), api_v1.py [INTOUCHABLE], api_v2.py,
+              gateway.py [STUB], llm_client.py [FOURNI], telemetry.py [FOURNI], pipeline/
+models/       v1/config.yaml [FOURNI], v2/config.yaml
 eval/         contrats/ (12 contrats, 3 longs), attendus.jsonl, fixtures/ (MOCK), run_eval.py [STUB], history.jsonl [GÉNÉRÉ]
-ops/          drift_proxy.py [FOURNI], registry/ [FOURNI], deploy.py [STUB], dashboard.py [STUB]
+ops/          drift_proxy.py [FOURNI], registry/ [FOURNI], deploy.py [STUB], dashboard.py [STUB],
+              serveur_pilotage.py [SQUELETTE 501]
 scripts/      client_v1.py [FOURNI], traffic_sim.py [FOURNI]
 tests/        integration/ (verts), acceptance/ (10 tests du brief)
 docs/         besoin_client.md, schema_remediation.md, exploitation.md [À RÉDIGER]
