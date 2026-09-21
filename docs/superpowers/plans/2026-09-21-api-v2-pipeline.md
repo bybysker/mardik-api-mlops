@@ -162,13 +162,16 @@ def test_regroupe_articles_courts_pour_limiter_les_appels():
 
 
 def test_decoupe_par_article_sans_regroupement_si_gros():
-    """Avec une taille_max petite, chaque article dépasse déjà la limite seul."""
+    """Chaque article, seul, tient sous taille_max (pas de repli taille fixe
+    déclenché) mais deux articles combinés le dépassent (pas de regroupement
+    entre eux). Tailles vérifiées : ~450-480 car. par bloc, taille_max=800 —
+    marge large dans les deux sens (bloc seul < 800, deux blocs > 800)."""
     texte = (
-        "Préambule\n\n" + ("Contexte du contrat détaillé. " * 30) + "\n\n"
-        "Article 1 — Objet\n\n" + ("Objet du contrat détaillé. " * 30) + "\n\n"
-        "Article 2 — Durée\n\n" + ("Durée du contrat détaillée. " * 30) + "\n"
+        "Préambule\n\n" + ("Contexte du contrat détaillé. " * 15) + "\n\n"
+        "Article 1 — Objet\n\n" + ("Objet du contrat détaillé. " * 15) + "\n\n"
+        "Article 2 — Durée\n\n" + ("Durée du contrat détaillée. " * 15) + "\n"
     )
-    sections = decouper(texte, taille_max=500)
+    sections = decouper(texte, taille_max=800)
     titres = [s.titre for s in sections]
     assert titres == ["préambule", "Article 1 — Objet", "Article 2 — Durée"]
 
