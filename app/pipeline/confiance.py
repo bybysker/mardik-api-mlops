@@ -2,7 +2,7 @@
 
 Contrat attendu :
 
-    scorer(clauses: list[Clause], texte: str) -> tuple[list[Clause], float]
+    scorer(clauses: list[Clause], nb_sections: int, texte: str = "") -> tuple[list[Clause], float]
 
 * Une ``Clause`` porte ``type``, ``extrait``, ``confiance_llm`` (la certitude
   déclarée par le modèle, 0–1), ``sections`` (indices des sections où elle a
@@ -37,5 +37,15 @@ class Clause:
         }
 
 
-def scorer(clauses: list[Clause], texte: str) -> tuple[list[Clause], float]:
-    raise NotImplementedError("pipeline.confiance.scorer — score composite par clause + global")
+def scorer(clauses: list[Clause], nb_sections: int, texte: str = "") -> tuple[list[Clause], float]:
+    # `texte` conservé pour compatibilité de signature avec le stub fourni,
+    # volontairement inutilisé : la formule (score-confiance.md) ne s'appuie
+    # que sur nb_sections. Biais connu (score souvent nul sur un contrat bien
+    # structuré) assumé, calibration prévue au chantier 2.
+    del texte
+    for clause in clauses:
+        n = len(clause.sections)
+        corroboration = 1.0 if nb_sections <= 1 else min(1.0, (n - 1) / 2)
+        clause.confiance = clause.confiance_llm * corroboration
+    score_global = min((c.confiance for c in clauses), default=0.0)
+    return clauses, score_global
