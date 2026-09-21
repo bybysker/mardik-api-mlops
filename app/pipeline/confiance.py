@@ -1,6 +1,6 @@
-"""Score de confiance composite, par clause puis global. [STUB]
+"""Score de confiance composite, par clause puis global.
 
-Contrat attendu :
+Contrat :
 
     scorer(clauses: list[Clause], nb_sections: int, texte: str = "") -> tuple[list[Clause], float]
 

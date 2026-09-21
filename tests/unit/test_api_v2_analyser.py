@@ -44,13 +44,29 @@ def test_analyser_v2_sur_contrat_multi_articles(telemetry: Telemetry, tmp_path):
     assert len(resultat.clauses) == len({c.type for c in resultat.clauses})
 
 
-def test_route_v2_document_trop_long_413():
+def test_route_v2_document_trop_long_413(tmp_path):
     app = create_app()
+    # Le garde-fou 413 vit désormais dans `analyser_v2` (Important #4) : il
+    # enregistre une `Mesure` d'erreur avant de lever, donc la télémétrie par
+    # défaut (qui écrirait dans le vrai `ops/metrics.jsonl`) est surchargée
+    # ici, comme pour le test « sous la limite » ci-dessous.
+    app.dependency_overrides[api_v2.get_telemetry] = lambda: build_telemetry(
+        span_exporter=InMemorySpanExporter(), metrics_path=tmp_path / "metrics.jsonl", level="INFO"
+    )
     client_http = TestClient(app)
     texte_trop_long = "x" * 250_001
     r = client_http.post("/v2/analyse", json={"texte": texte_trop_long})
     assert r.status_code == 413
     assert "detail" in r.json()
+
+
+def test_analyser_v2_document_trop_long_leve_exception_hors_http(telemetry: Telemetry, tmp_path):
+    """Le garde-fou 413 protège aussi les appelants directs (futur gateway),
+    pas seulement la route HTTP — voir `analyser_v2`."""
+    client = LLMClient(Bundle.charger("v2"), fixtures=tmp_path / "fixtures_vides")
+    texte_trop_long = "x" * 250_001
+    with pytest.raises(api_v2.DocumentTropLong):
+        analyser_v2(texte_trop_long, client, telemetry)
 
 
 def test_route_v2_document_sous_la_limite_ne_declenche_pas_413(tmp_path):

@@ -1,6 +1,6 @@
-"""Fusion et dédoublonnage des clauses extraites section par section (*reduce*). [STUB]
+"""Fusion et dédoublonnage des clauses extraites section par section (*reduce*).
 
-Contrat attendu :
+Contrat :
 
     consolider(par_section: list[list[Clause]]) -> list[Clause]
 
