@@ -38,7 +38,6 @@ Ligne de commande : ``python -m ops.deploy publier v2.0.0 | canary v2.0.0 --pour
 from __future__ import annotations
 
 import argparse
-import os
 import subprocess
 import sys
 import time
