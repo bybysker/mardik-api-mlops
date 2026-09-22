@@ -38,6 +38,7 @@ Ligne de commande : ``python -m ops.deploy publier v2.0.0 | canary v2.0.0 --pour
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -112,15 +113,37 @@ def publier(
 def deployer_canary(
     version: str, pourcentage: int | None = None, registry: Registry | None = None
 ) -> dict[str, Any]:
-    raise NotImplementedError("deploy.deployer_canary — X % du trafic vers la version")
+    reg = registry or Registry()
+    pct = pourcentage if pourcentage is not None else int(os.environ.get("CANARY_PERCENT", "10"))
+    reg.definir_canary(version, pct)
+    reg.journaliser("canary", version=version, pourcentage=pct)
+    return reg.index()
 
 
 def promouvoir(version: str, registry: Registry | None = None) -> dict[str, Any]:
-    raise NotImplementedError("deploy.promouvoir — la version devient active à 100 %")
+    reg = registry or Registry()
+    reg.manifest(version)  # lève ErreurRegistre si version inconnue
+    idx = reg.index()
+    precedente = idx.get("active")
+    reg.ecrire_index(
+        {**idx, "active": version, "precedente": precedente, "canary": None, "canary_percent": 0}
+    )
+    reg.journaliser("promotion", version=version, precedente=precedente)
+    return reg.index()
 
 
 def rollback(registry: Registry | None = None, motif: str = "manuel") -> dict[str, Any]:
-    raise NotImplementedError("deploy.rollback — retour arrière en une opération")
+    reg = registry or Registry()
+    idx = reg.index()
+    avant = {"active": idx.get("active"), "canary": idx.get("canary")}
+    if idx.get("canary"):
+        idx = {**idx, "canary": None, "canary_percent": 0}
+    else:
+        idx = {**idx, "active": idx.get("precedente"), "precedente": idx.get("active")}
+    reg.ecrire_index(idx)
+    apres = {"active": idx.get("active"), "canary": idx.get("canary")}
+    reg.journaliser("rollback", motif=motif, avant=avant, apres=apres)
+    return reg.index()
 
 
 def surveiller(
