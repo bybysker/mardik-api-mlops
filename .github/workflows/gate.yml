@@ -1,0 +1,130 @@
+name: Gate — tests complets et évaluation réelle
+
+# Déclenché par le push d'un tag gate/<sha7> (par le développeur, quand il
+# veut — jamais automatique). 1. refus immédiat si aucun revue-ok/* ne
+# pointe sur ce SHA (0 appel LLM payant avant d'être sûr que la revue est
+# fraîche) ; 2. lint + tests unitaires/intégration/acceptance mockés
+# (needs: dans la même exécution — sans quoi rien n'empêche de poser
+# eval-ok sur un commit dont 0b a échoué, cf. le design) ; 3. évaluation
+# réelle (vrai modèle Azure, payante) ; 4. pose eval-ok/<sha7>. Tag de
+# déclenchement (gate/*) et tag de preuve (eval-ok/*) distincts : la preuve
+# n'existe que si tout est vert. Voir
+# docs/superpowers/specs/2026-09-22-chaine-llmops-design.md.
+
+on:
+  push:
+    tags:
+      - "gate/*"
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      MOCK: "on"
+      DRIFT: "off"
+      LLM_PROVIDER: ollama
+      LLM_MODEL: modele-ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Vérifier la revue (revue-ok sur ce SHA)
+        run: |
+          if ! git tag --points-at "${{ github.sha }}" | grep -q '^revue-ok/'; then
+            echo "[refus] aucun tag revue-ok/* ne pointe sur ${{ github.sha }} : faire approuver la PR avant le gate."
+            exit 1
+          fi
+          echo "[ok] revue-ok présent sur ${{ github.sha }}"
+
+      - name: Installer uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installer les dépendances
+        run: uv sync
+
+      - name: Linting (ruff)
+        run: uv run ruff check .
+
+      - name: Tests unitaires, intégration, acceptance (MOCK=on)
+        run: uv run pytest -q tests/unit tests/integration tests/acceptance
+
+  evaluation:
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CI_TAG_TOKEN }}
+
+      - name: Écrire le .env pour le fournisseur Azure réel
+        run: |
+          cat > .env <<ENVEOF
+          LLM_PROVIDER=azure
+          LLM_MODEL=${{ secrets.AZURE_LLM_MODEL }}
+          AZURE_AI_ENDPOINT=${{ secrets.AZURE_AI_ENDPOINT }}
+          AZURE_AI_API_KEY=${{ secrets.AZURE_AI_API_KEY }}
+          AZURE_AI_API_VERSION=${{ secrets.AZURE_AI_API_VERSION }}
+          LLM_PROXY_URL=http://localhost:8080
+          DRIFT=off
+          MOCK=off
+          CANARY_PERCENT=10
+          ENVEOF
+
+      - name: Démarrer le proxy de dérive et l'adaptateur Azure
+        run: docker compose up -d --build proxy azure-adapter
+
+      - name: Attendre que le proxy soit prêt
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8080/_drift && exit 0
+            sleep 1
+          done
+          echo "le proxy n'a pas démarré à temps :"
+          docker compose logs proxy azure-adapter
+          exit 1
+
+      - name: Installer uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installer les dépendances
+        run: uv sync
+
+      - name: Gate d'évaluation (vrai modèle, v2, seuil 0.75)
+        env:
+          LLM_PROVIDER: azure
+          LLM_PROXY_URL: http://localhost:8080
+          MOCK: "off"
+        run: uv run python -m eval.run_eval --version v2 --seuil 0.75
+
+      - name: Publier eval/history.jsonl en artefact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-history-${{ github.sha }}
+          path: eval/history.jsonl
+
+      - name: Poser eval-ok sur ce SHA
+        run: |
+          SHA7=$(git rev-parse --short=7 "${{ github.sha }}")
+          if git tag --points-at "${{ github.sha }}" | grep -q '^eval-ok/'; then
+            echo "[ok] eval-ok déjà posé sur ${{ github.sha }} (gate relancé après un succès)"
+            exit 0
+          fi
+          git config user.name "mardik-ci"
+          git config user.email "mardik-ci@users.noreply.github.com"
+          git tag "eval-ok/$SHA7" "${{ github.sha }}"
+          git push origin "eval-ok/$SHA7"
+          echo "[ok] eval-ok/$SHA7 posé sur ${{ github.sha }}"

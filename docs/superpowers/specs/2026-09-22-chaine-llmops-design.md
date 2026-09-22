@@ -38,7 +38,7 @@ encore : `.github/workflows/llmops.yml` est un squelette d'apprentissage
 | Automatisation du CD sur `main` | Jusqu'au **canary 10 %** (`publier` + `deployer_canary(10)`) ; promotion/rollback restent des commandes manuelles |
 | Déclenchement du gate réel | **Tag `gate/<sha7>` poussé par le développeur** (mécanisme identique à `revue-ok`/`eval-ok`, pas de `workflow_dispatch`) |
 | Preuve de revue (`revue-ok`) | **Second compte GitHub dédié** (ex. `mardik-relecteur`) qui approuve la PR — même pattern que QualiCheck, pas une simple déclaration |
-| Bump SemVer major/minor | **Mot-clé dans le message du commit de fusion** (`[minor]`/`[major]`) ; patch par défaut |
+| Bump SemVer major/minor | **Mot-clé dans le message du commit de tête** de `main` (`[minor]`/`[major]`) ; patch par défaut |
 | `CANARY_PERCENT`/`MOCK` dans `.env` | Restent statiques (décision antérieure, 2026-09-22) |
 | Structure des workflows | **4 fichiers séparés par rôle** (`ci.yml`, `revue.yml`, `gate.yml`, `cd-main.yml`), remplacent `llmops.yml` — pattern repris de `/projets/QualiCheck/.gitea/workflows/` (syntaxe GitHub Actions native, aucune adaptation de syntaxe nécessaire) |
 
@@ -82,7 +82,11 @@ latence_max_ms` ET `cout_moyen_eur < cout_max_eur`. Une ligne JSON est ajoutée
   `rapport` est fourni (le workflow `cd-main.yml` réutilisera le rapport déjà
   produit par `gate.yml`, pour ne pas repayer un second appel au vrai modèle).
   Refuse (`ErreurDeploiement`) si `rapport.passe` est faux. Sinon
-  `Registry.etiqueter(...)` puis `journaliser("publication", ...)`.
+  `Registry.etiqueter(...)` puis `journaliser("publication", ...)`. En
+  pratique, la réutilisation de `rapport` n'est disponible que côté API
+  Python : le CLI `python -m ops.deploy publier` n'expose pas de flag
+  `--rapport`, donc l'invocation de `cd-main.yml` sur `main` rejoue toujours
+  le vrai gate (second appel réel, payant, au modèle Azure).
 - **`deployer_canary`** : `Registry.definir_canary(version, pourcentage)` +
   journal. Le pourcentage par défaut vient de `CANARY_PERCENT` (`.env`), sinon
   10.
@@ -168,3 +172,6 @@ Rien après l'étape 5 : pas de progression automatique, pas d'appel à
   fichier de workflow.
 - Générer/enregistrer les secrets GitHub nécessaires (Azure, `CI_TAG_TOKEN`
   ou équivalent pour que `revue.yml`/`gate.yml` puissent pousser des tags).
+- Configurer la protection de branche `main` pour n'autoriser que les fusions
+  fast-forward (pas de merge commit, pas de squash) — condition nécessaire
+  pour que la comparaison de SHA du mécanisme à deux tags reste valide.

@@ -38,11 +38,13 @@ Ligne de commande : ``python -m ops.deploy publier v2.0.0 | canary v2.0.0 --pour
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import time
 from typing import Any
 
+from app.llm_client import Bundle
 from app.telemetry import MetricsStore
 from ops.registry import Registry
 
@@ -60,6 +62,28 @@ def _commit_courant() -> str:
         return "local"
 
 
+def prochaine_version(bump: str = "patch", registry: Registry | None = None) -> str:
+    """Calcule la prochaine version SemVer à partir de la dernière du registre.
+
+    ``bump`` : ``"patch"`` (défaut, auto-incrémenté à chaque build validé),
+    ``"minor"`` ou ``"major"`` (montés manuellement, cf. versionnage.md).
+    """
+    reg = registry or Registry()
+    versions = reg.versions()
+    if not versions:
+        return "v1.0.0"
+    major, minor, patch = (int(x) for x in versions[-1].lstrip("v").split("."))
+    if bump == "major":
+        major, minor, patch = major + 1, 0, 0
+    elif bump == "minor":
+        minor, patch = minor + 1, 0
+    elif bump == "patch":
+        patch += 1
+    else:
+        raise ValueError(f"bump invalide : {bump!r} (attendu patch/minor/major)")
+    return f"v{major}.{minor}.{patch}"
+
+
 def publier(
     version: str,
     *,
@@ -69,21 +93,57 @@ def publier(
     seuil: float = 0.75,
     rapport: Any | None = None,
 ) -> dict[str, Any]:
-    raise NotImplementedError("deploy.publier — gate puis étiquetage dans le registre")
+    reg = registry or Registry()
+    commit = commit or _commit_courant()
+    if rapport is None:
+        from eval.run_eval import evaluer
+
+        rapport = evaluer(bundle, seuil=seuil)
+    if not rapport.passe:
+        raise ErreurDeploiement(
+            "gate d'évaluation en échec : " + "; ".join(rapport.motifs)
+        )
+    manifest = reg.etiqueter(
+        version, Bundle.charger(bundle), commit=commit, note_eval=rapport.note
+    )
+    reg.journaliser("publication", version=version, commit=commit, note_eval=rapport.note)
+    return manifest
 
 
 def deployer_canary(
     version: str, pourcentage: int | None = None, registry: Registry | None = None
 ) -> dict[str, Any]:
-    raise NotImplementedError("deploy.deployer_canary — X % du trafic vers la version")
+    reg = registry or Registry()
+    pct = pourcentage if pourcentage is not None else int(os.environ.get("CANARY_PERCENT", "10"))
+    reg.definir_canary(version, pct)
+    reg.journaliser("canary", version=version, pourcentage=pct)
+    return reg.index()
 
 
 def promouvoir(version: str, registry: Registry | None = None) -> dict[str, Any]:
-    raise NotImplementedError("deploy.promouvoir — la version devient active à 100 %")
+    reg = registry or Registry()
+    reg.manifest(version)  # lève ErreurRegistre si version inconnue
+    idx = reg.index()
+    precedente = idx.get("active")
+    reg.ecrire_index(
+        {**idx, "active": version, "precedente": precedente, "canary": None, "canary_percent": 0}
+    )
+    reg.journaliser("promotion", version=version, precedente=precedente)
+    return reg.index()
 
 
 def rollback(registry: Registry | None = None, motif: str = "manuel") -> dict[str, Any]:
-    raise NotImplementedError("deploy.rollback — retour arrière en une opération")
+    reg = registry or Registry()
+    idx = reg.index()
+    avant = {"active": idx.get("active"), "canary": idx.get("canary")}
+    if idx.get("canary"):
+        idx = {**idx, "canary": None, "canary_percent": 0}
+    else:
+        idx = {**idx, "active": idx.get("precedente"), "precedente": idx.get("active")}
+    reg.ecrire_index(idx)
+    apres = {"active": idx.get("active"), "canary": idx.get("canary")}
+    reg.journaliser("rollback", motif=motif, avant=avant, apres=apres)
+    return reg.index()
 
 
 def surveiller(

@@ -1,0 +1,116 @@
+name: CD — main
+
+# Se déclenche sur push vers main, qui n'arrive qu'en fast-forward strict
+# une fois que le SHA de tête porte revue-ok/<sha> et eval-ok/<sha> (cf.
+# conception_figee/chantier1_llmops/gel-eval-avant-fusion.md — la garantie
+# vient de la comparaison de SHA ci-dessous, pas d'un réglage GitHub).
+# main rejoue le gate d'évaluation réel une seconde fois (publier() n'a pas de
+# moyen, depuis le CLI, de réutiliser le rapport du gate déjà passé sur dev —
+# simplification assumée, cf. design) : build -> publication (gate réel) ->
+# canary 10 % seulement.
+# Pas de promotion ni de rollback automatiques (chantier 2, surveiller()
+# hors périmètre). Voir
+# docs/superpowers/specs/2026-09-22-chaine-llmops-design.md.
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: main-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      LLM_PROVIDER: azure
+      LLM_PROXY_URL: http://localhost:8080
+      DRIFT: "off"
+      CANARY_PERCENT: "10"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Vérifier les preuves de revue et de gate
+        run: |
+          TAGS=$(git tag --points-at "${{ github.sha }}")
+          echo "$TAGS" | grep -q '^revue-ok/' || { echo "[refus] aucun revue-ok/* sur ${{ github.sha }}"; exit 1; }
+          echo "$TAGS" | grep -q '^eval-ok/'  || { echo "[refus] aucun eval-ok/* sur ${{ github.sha }}"; exit 1; }
+          echo "[ok] revue-ok et eval-ok présents sur ${{ github.sha }}"
+
+      - name: Installer uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installer les dépendances
+        run: uv sync
+
+      - name: Écrire le .env pour le fournisseur Azure réel
+        run: |
+          cat > .env <<ENVEOF
+          LLM_PROVIDER=azure
+          LLM_MODEL=${{ secrets.AZURE_LLM_MODEL }}
+          AZURE_AI_ENDPOINT=${{ secrets.AZURE_AI_ENDPOINT }}
+          AZURE_AI_API_KEY=${{ secrets.AZURE_AI_API_KEY }}
+          AZURE_AI_API_VERSION=${{ secrets.AZURE_AI_API_VERSION }}
+          LLM_PROXY_URL=http://localhost:8080
+          DRIFT=off
+          CANARY_PERCENT=10
+          ENVEOF
+
+      - name: Démarrer le proxy de dérive et l'adaptateur Azure
+        run: docker compose up -d --build proxy azure-adapter
+
+      - name: Attendre que le proxy soit prêt
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8080/_drift && exit 0
+            sleep 1
+          done
+          echo "le proxy n'a pas démarré à temps :"
+          docker compose logs proxy azure-adapter
+          exit 1
+
+      - name: Calculer la prochaine version
+        id: version
+        run: |
+          # patch par défaut, sauf [minor]/[major] dans le message du commit de
+          # tête de main (fusions ff-only : pas de commit de fusion, cf. design)
+          BUMP=patch
+          MESSAGE=$(git log -1 --pretty=%B "${{ github.sha }}")
+          if echo "$MESSAGE" | grep -q '\[major\]'; then BUMP=major; fi
+          if echo "$MESSAGE" | grep -q '\[minor\]'; then BUMP=minor; fi
+          VERSION=$(uv run python -c "from ops.deploy import prochaine_version; print(prochaine_version('$BUMP'))")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "[ok] prochaine version : $VERSION (bump=$BUMP)"
+
+      - name: Publier la version (gate + étiquetage dans le registre)
+        run: uv run python -m ops.deploy publier "${{ steps.version.outputs.version }}" --bundle v2 --seuil 0.75
+
+      - name: Committer la nouvelle version dans le registre
+        run: |
+          git config user.name "mardik-ci"
+          git config user.email "mardik-ci@users.noreply.github.com"
+          git add -f "ops/registry/${{ steps.version.outputs.version }}/"
+          git commit -m "chore(registry): publish ${{ steps.version.outputs.version }}"
+          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:main
+
+      - name: Connexion au registre GitHub (ghcr.io)
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Construire l'image
+        run: docker build -t "ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}" .
+
+      - name: Pousser l'image
+        run: docker push "ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}"
+
+      - name: Déployer en canary
+        run: uv run python -m ops.deploy canary "${{ steps.version.outputs.version }}"

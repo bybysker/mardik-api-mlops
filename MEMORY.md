@@ -263,33 +263,38 @@ Deux autres points tranchés le même jour :
   écrite avant d'avoir accès au stub réel et ne tranchait pas ce doublon
   explicitement ; c'est le test d'acceptance gelé qui fixe la réponse.
 
-## En cours — exécution du plan chaîne LLMOps (2026-09-22, en pause)
+## Chaîne LLMOps — plan exécuté (2026-09-22, branche `sdd/chaine-llmops`)
 
-Spec (`docs/superpowers/specs/2026-09-22-chaine-llmops-design.md`) et plan
-(`docs/superpowers/plans/2026-09-22-chaine-llmops.md`, 8 tâches) écrits et
-validés. Exécution démarrée via `superpowers:subagent-driven-development`,
-**mise en pause par l'utilisateur** après la tâche 1 — reprendre à la
-tâche 2 (`eval.run_eval.evaluer`).
+Les 8 tâches du plan (`docs/superpowers/plans/2026-09-22-chaine-llmops.md`)
+sont terminées et relues : `prochaine_version`, `evaluer` (gate d'évaluation),
+`publier`/`deployer_canary`/`promouvoir`/`rollback`, les 4 workflows
+(`ci.yml`, `revue.yml`, `gate.yml`, `cd-main.yml`) qui remplacent
+`llmops.yml`. `surveiller()` et `app/gateway.py` restent hors périmètre
+(chantier 2), conformément à la décision de périmètre ci-dessus.
 
-- **Espace de travail isolé** : `.worktrees/chaine-llmops/` (worktree git,
-  branche `sdd/chaine-llmops`, créée depuis `dev` au commit `7740b5c`) —
-  créé manuellement (`git worktree add`) plutôt qu'avec l'outil natif
-  `EnterWorktree`, dont le réglage par défaut (`fresh`) serait parti de
-  `origin/main` et aurait perdu tous les commits de `dev` non encore
-  poussés. **Rien fusionné vers `dev` à ce stade.**
-- **Ledger d'avancement** : `.worktrees/chaine-llmops/.superpowers/sdd/2026-09-22-chaine-llmops/progress.md`.
-- **Tâche 1/8 terminée et revue** (`ops.deploy.prochaine_version`) : commits
-  `55abf9a` (implémentation) puis `c33489e` (fix — import `os` retiré,
-  inutilisé avant la tâche 4 qui en aura besoin pour lire `CANARY_PERCENT`),
-  revue de tâche ✅ conforme, 4/4 tests verts. **La tâche 4 doit réajouter
-  `import os`** (ce n'est plus fait par la tâche 1).
-- **Tâches 2 à 8** : pas commencées (`evaluer`, `publier`,
-  `deployer_canary`/`promouvoir`/`rollback`, puis les 4 workflows GitHub
-  Actions).
-- Préférence utilisateur pour cette exécution : sous-agents dispatchés un
-  par un (jamais en parallèle — déjà la règle par défaut du skill), modèle
-  Haiku quand la tâche le permet (transcription de code déjà entièrement
-  spécifié dans le plan).
+La revue finale de branche (avant fusion vers `dev`) a trouvé plusieurs
+problèmes, corrigés dans la même vague de correctifs : les 4 tests
+d'acceptance hors périmètre bloquaient `tests` (donc `evaluation`, donc
+`eval-ok`) — marqués `xfail(strict=False)` ; le commentaire d'en-tête de
+`cd-main.yml` affirmait à tort qu'aucun gate n'était rejoué sur `main` alors
+que `publier()` sans `--rapport` relance un vrai gate payant ; le push Docker
+vers `ghcr.io` se faisait avant le gate (`publier`), risquant de publier une
+image jamais validée ; la version ne progressait jamais d'un run CD à
+l'autre car `ops/registry/v*` (sauf `v1.0.0`) est gitignored sur chaque
+runner — un nouveau step commit désormais le répertoire de version
+fraîchement créé, poussé avec `GITHUB_TOKEN` (jamais un PAT, pour éviter une
+boucle de déclenchement infinie sur `push: main`) ; le prérequis fast-forward-only
+sur `main` (nécessaire à la validité du mécanisme à deux tags) était
+implicite, maintenant documenté ; `revue.yml` n'avait pas de bloc
+`permissions:` explicite.
+
+**La chaîne reste non exercée de bout en bout en conditions réelles** : les
+prérequis hors code restent à faire par l'utilisateur — compte
+`mardik-relecteur`, secret `CI_TAG_TOKEN`, secrets Azure, règles de
+protection de tag (`revue-ok/*`, `eval-ok/*`, `v*`), protection de branche
+`main` en fast-forward-only. Les workflows sont implémentés et relus mais
+jamais exécutés sur un vrai dépôt GitHub. Prêt pour fusion vers `dev` une
+fois ces prérequis GitHub mis en place par l'utilisateur.
 
 ## Environnement technique
 
