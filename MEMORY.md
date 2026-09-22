@@ -230,20 +230,38 @@ Conception : `docs/superpowers/specs/2026-09-21-v2-pilotage-containers-design.md
 - Tests : `MOCK=on uv run pytest -q` → **54 passed, 7 failed** (les 7 rouges
   attendent `ops/deploy.py`, `eval/run_eval.py`, `ops/dashboard.py`).
 
-## En cours / point ouvert (2026-09-21)
+## Décision — périmètre du chantier 1 point 3 (2026-09-22)
 
 **Chantier 1, point 3 (chaîne `llmops.yml` : gates → build → artefact
-étiqueté → déploiement canary)** : brainstorming démarré, pas terminé,
-aucun code écrit. Décidé : pas besoin de rouvrir l'architecture (celle de
-`docs/spec-v2.md` §4 sert de cible pour le déploiement aussi). Point
-**non tranché**, à poser à l'utilisateur en premier à la reprise :
-périmètre exact du point 3 — voir `TODO.md`, section « Chantier 1 — La
-chaîne LLMOps » pour le détail (`ops/deploy.py::surveiller` et
-`app/gateway.py` sont-ils dans ce point 3, ou chantier 2 ?). Repères déjà
-en main pour la suite : `conception_figee/chantier1_llmops/gel-eval-avant-fusion.md`
+étiqueté → déploiement canary)** : périmètre tranché par l'utilisateur.
+Point 3 = `llmops.yml` + `ops/deploy.py::publier/deployer_canary/promouvoir/rollback`,
+**sans** `surveiller()` (détection de dérive + rollback automatique, qui
+reste chantier 2) et **sans** `app/gateway.py` (routage réel du trafic
+canary, qui reste chantier 2 aussi). Conséquence assumée :
+`test_promotion_canary_puis_totale` et `test_rollback_en_une_operation`
+(tests d'acceptance fournis, dépendent de `gateway.py`) resteront rouges
+tant que le chantier 2 n'est pas fait — attendu, pas un défaut du point 3.
+Repères déjà en main pour la suite : `conception_figee/chantier1_llmops/gel-eval-avant-fusion.md`
 (mécanisme à deux tags `revue-ok`/`eval-ok`, détaillé et acté) et
-`ops/deploy.py` (stub fourni, signatures des 5 fonctions déjà figées par
-les tests d'acceptance fournis).
+`ops/deploy.py` (stub fourni, signatures des 4 fonctions restantes déjà
+figées par les tests d'acceptance fournis).
+
+Deux autres points tranchés le même jour :
+
+- **`CANARY_PERCENT`/`MOCK` dans `.env`** : restent des valeurs par défaut
+  statiques. Le pilotage dynamique du pourcentage canary relève du
+  chantier 2 (registre/serveur de pilotage), pas de l'environnement de base.
+- **Doublon `ops/dashboard.py` (8501) vs `GET /pilotage/dashboard`** : pas de
+  duplication à résoudre. `ops/dashboard.py::resume()` reste la fonction de
+  calcul (imposée par le test d'acceptance fourni `test_dashboard_par_version`
+  dans `tests/acceptance/test_observabilite.py`) ; `GET /pilotage/dashboard`
+  (serveur de pilotage) réutilise cette même fonction en interne plutôt que
+  de recalculer l'agrégation. Le service `dashboard` (8501, `--serve`) reste
+  une vue texte/HTML autonome héritée de la remédiation, en plus de la route
+  JSON contractuelle. La conception (ADR 0001, Q6 de
+  `conception_figee/chantier2_observabilite/questions_reponses.md`) avait été
+  écrite avant d'avoir accès au stub réel et ne tranchait pas ce doublon
+  explicitement ; c'est le test d'acceptance gelé qui fixe la réponse.
 
 ## Environnement technique
 

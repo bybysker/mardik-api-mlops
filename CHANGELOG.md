@@ -2,6 +2,40 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-22 (chantier 1 point 3 : décisions de périmètre + design de la chaîne LLMOps)
+
+- **Périmètre du point 3 tranché** : `llmops.yml` + `ops/deploy.py::publier/
+  deployer_canary/promouvoir/rollback`, **sans** `surveiller()` (détection de
+  dérive) ni `app/gateway.py` (routage réel du trafic canary) — les deux
+  restent chantier 2. Conséquence assumée : `test_promotion_canary_puis_totale`
+  et `test_rollback_en_une_operation` (tests d'acceptance fournis) resteront
+  rouges tant que le chantier 2 n'est pas fait.
+- **`CANARY_PERCENT`/`MOCK` dans `.env`** : restent des valeurs par défaut
+  statiques, pas de pilotage dynamique en dehors du chantier 2.
+- **Doublon `ops/dashboard.py` (8501) vs `GET /pilotage/dashboard`** : pas de
+  duplication à résoudre — `ops/dashboard.py::resume()` (imposé par le test
+  d'acceptance fourni `test_dashboard_par_version`) reste la fonction de
+  calcul, réutilisée en interne par la route JSON contractuelle.
+- **`bruno/`** retiré de l'index git (client de requêtes local, non
+  versionné) et ajouté à `.gitignore`.
+- **Design de la chaîne LLMOps écrit** :
+  `docs/superpowers/specs/2026-09-22-chaine-llmops-design.md` — couvre
+  `eval/run_eval.py::evaluer`, `ops/deploy.py` (sauf `surveiller`) et 4
+  workflows GitHub Actions (`ci.yml`, `revue.yml`, `gate.yml`, `cd-main.yml`)
+  qui remplacent le `.github/workflows/llmops.yml` `[TEMPLATE]` actuel.
+  Pattern repris de `/projets/QualiCheck/.gitea/workflows/` (même principe de
+  gates à deux tags, syntaxe GitHub Actions native). Décisions clés : gate
+  déclenché par un tag `gate/<sha7>` poussé par le développeur (comme
+  `revue-ok`/`eval-ok`) ; `revue-ok` posé sur l'approbation d'un second compte
+  GitHub dédié ; bump SemVer major/minor via mot-clé `[minor]`/`[major]` dans
+  le message du commit de fusion, patch auto-incrémenté sinon ; CD automatique
+  jusqu'au canary 10 % seulement, promotion/rollback restent manuels.
+- **Écart de conception documenté** : la note du gate d'évaluation suit le
+  **rappel simple** documenté par le stub `eval/run_eval.py`, pas le micro-F1
+  scindé courts/longs décidé en conception (`note-evaluation.md`) — aucun test
+  ne verrouille l'une ou l'autre formule, le garde-fou visé reste assuré via
+  `seuil_note` par contrat (détail dans le design).
+
 ## 2026-09-21 (topologie : containers `v2` et `serveur_pilotage`, ports distincts)
 
 - Première étape concrète vers la topologie cible de `docs/spec-v2.md` §4

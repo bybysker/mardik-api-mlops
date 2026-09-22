@@ -11,12 +11,6 @@
       (`fenetre-glissante-seuils.md`, `canary.md`, `tableau-pilotage.md` + PDF,
       `questions_reponses.md` Q9/Q10/Q12/Q14)
 
-## En attente de décision utilisateur
-
-- [ ] Committer les fichiers en attente (`git status` : `docs/analyse-coherence-conception.md`
-      modifié, `docs/conception_revue/` et `docs/img/` nouveaux) — pas encore
-      committé, accord explicite requis avant chaque commit
-
 ## Chantier 1 — Le bundle v2
 
 - [x] `models/v2/config.yaml` : stratégie `map_reduce_clauses`, prompt par
@@ -44,35 +38,41 @@
 
 ## Chantier 1 — La chaîne LLMOps
 
-- [ ] Revoir si `CANARY_PERCENT` et `MOCK` doivent rester des valeurs par
-      défaut dans `.env`, ou si `CANARY_PERCENT` doit plutôt être piloté
-      dynamiquement (registre / `ops/deploy.py --pourcentage`) plutôt qu'un
-      défaut statique — point soulevé en nettoyant `.env` (2026-09-21)
-- [ ] `ops/deploy.py::publier/deployer_canary/promouvoir/rollback/surveiller`
+- [x] **Tranché (2026-09-22)** : `CANARY_PERCENT` et `MOCK` restent des
+      valeurs par défaut statiques dans `.env`. Le pilotage dynamique du
+      pourcentage canary relève du chantier 2 (registre/serveur de
+      pilotage), pas de l'environnement de base.
+- [ ] `ops/deploy.py::publier/deployer_canary/promouvoir/rollback` (point 3 ;
+      `surveiller` reste chantier 2, voir décision périmètre ci-dessus)
 - [ ] `ops/dashboard.py::resume/rendre_texte/rendre_html` — fenêtre
       **temporelle** (`fenetre_s`), voir `docs/conception_revue/pilotage/fenetre-glissante-seuils.md`
 - [ ] `.github/workflows/llmops.yml` — actuellement un `[TEMPLATE]` générique
       (push `main`/PR/tags) ; à réécrire pour le mécanisme à deux tags
       (`revue-ok/<sha>`, `eval-ok/<sha>`) décrit dans
-      `conception_figee/chantier1_llmops/gel-eval-avant-fusion.md`
+      `conception_figee/chantier1_llmops/gel-eval-avant-fusion.md`. **Exemple
+      à suivre (tranché 2026-09-22)** : même principe de gates que
+      `/projets/QualiCheck/.gitea/workflows/` (`ci.yml`, `revue.yml`,
+      `gate.yml`, `cd-staging.yml` — syntaxe GitHub Actions, transposable
+      telle quelle) — 4 workflows séparés par rôle, garde bash
+      `git tag --points-at "$SHA" | grep -q '^revue-ok/'`, pose de tag
+      idempotente (skip si déjà posé), compte technique dédié + token
+      restreint pour poser les tags (jamais le développeur),
+      `fetch-depth: 0` sur tout job qui lit des tags. **Déclenchement manuel
+      du gate = tag `gate/<sha7>` poussé par le développeur** (pas de
+      `workflow_dispatch`), même logique que `revue-ok`/`eval-ok`.
 - [x] **Conciliation architecture avant CI/CD (point 3)** : pas besoin de la
       rouvrir, l'architecture actée pour l'API (`docs/spec-v2.md` §4 — un seul
       artefact Docker partagé, 3 containers/rôles v1/v2/gateway, Caddy en
       frontal) sert aussi de cible pour le déploiement canary du point 3
       (confirmé par l'utilisateur, 2026-09-21).
-- [ ] **Point ouvert, à trancher au démarrage de la prochaine session** :
-      périmètre exact du point 3. `ops/deploy.py` (stub fourni) contient
-      `publier/deployer_canary/promouvoir/rollback` (mécanique de
-      déploiement, clairement point 3) **et** `surveiller` (détection de
-      dérive + rollback automatique) qui ressemble à la boucle « rollback sur
-      signal » du chantier 2 du brief. `app/gateway.py` (routage réel du
-      trafic canary, testé par `test_promotion_canary_puis_totale` et
-      `test_rollback_en_une_operation`) est rangé sous chantier 2 dans ce
-      TODO, mais sans lui la mécanique de canary ne route aucun trafic pour
-      de vrai — ces deux tests fournis resteront rouges tant que le choix
-      n'est pas fait. Question posée à l'utilisateur, pas encore répondue :
-      point 3 = `llmops.yml` + `deploy.py` sans `surveiller()` (recommandé),
-      ou avec `surveiller()`, ou avec `gateway.py` en plus.
+- [x] **Périmètre exact du point 3, tranché (2026-09-22)** : point 3 =
+      `llmops.yml` + `deploy.py::publier/deployer_canary/promouvoir/rollback`,
+      **sans** `surveiller()`. `surveiller` (détection de dérive + rollback
+      automatique) et `app/gateway.py` (routage réel du trafic canary)
+      restent chantier 2. Conséquence : `test_promotion_canary_puis_totale`
+      et `test_rollback_en_une_operation` (qui dépendent de `gateway.py`)
+      resteront rouges tant que le chantier 2 n'est pas fait — attendu, pas
+      un défaut du point 3.
 
 ## Chantier 2 — Pilotage
 
@@ -83,9 +83,13 @@
       décisions (fenêtre 120 s / 300 s, minimum 10 mesures — voir
       `docs/conception_revue/pilotage/fenetre-glissante-seuils.md`), écriture
       du registre et de `ops/journal_pilotage.jsonl`, régénération du Caddyfile
-- [ ] Arbitrage `ops/dashboard.py` (service `dashboard`, 8501) vs la route
-      `GET /pilotage/dashboard` du contrat gelé — deux tableaux de bord
-      coexistent depuis l'ajout du service `serveur_pilotage`
+- [x] **Arbitrage tranché (2026-09-22)** : pas de duplication à résoudre.
+      `ops/dashboard.py::resume()` reste la fonction de calcul (imposée par
+      le test d'acceptance fourni `test_dashboard_par_version`) ;
+      `GET /pilotage/dashboard` (serveur de pilotage) réutilise cette même
+      fonction en interne plutôt que de recalculer l'agrégation. Le service
+      `dashboard` (8501, `--serve`) reste une vue texte/HTML autonome héritée
+      de la remédiation, en plus de la route JSON contractuelle.
 - [ ] Faire lire `ops/metrics_v2.jsonl` (service `v2`) par `ops/dashboard.py`
       et `ops/deploy.py::surveiller`, qui ne connaissent que
       `ops/metrics.jsonl` — condition pour que le trafic du container `v2`
