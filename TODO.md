@@ -32,7 +32,7 @@
 
 ## Chantier 1 — Le gate d'évaluation
 
-- [ ] `eval/run_eval.py::evaluer` — note par version (formule libre tant que
+- [x] `eval/run_eval.py::evaluer` — note par version (formule libre tant que
       les seuils/comparaisons testés passent ; conception : micro-F1 scindé
       courts/longs via `seuil_note` par contrat), latence P95, coût moyen
 
@@ -42,24 +42,30 @@
       valeurs par défaut statiques dans `.env`. Le pilotage dynamique du
       pourcentage canary relève du chantier 2 (registre/serveur de
       pilotage), pas de l'environnement de base.
-- [ ] `ops/deploy.py::publier/deployer_canary/promouvoir/rollback` (point 3 ;
-      `surveiller` reste chantier 2, voir décision périmètre ci-dessus)
+- [x] `ops/deploy.py::publier/deployer_canary/promouvoir/rollback` (point 3 ;
+      `surveiller` reste chantier 2 (hors périmètre, avec `app/gateway.py`),
+      voir décision périmètre ci-dessus)
 - [ ] `ops/dashboard.py::resume/rendre_texte/rendre_html` — fenêtre
       **temporelle** (`fenetre_s`), voir `docs/conception_revue/pilotage/fenetre-glissante-seuils.md`
-- [ ] `.github/workflows/llmops.yml` — actuellement un `[TEMPLATE]` générique
-      (push `main`/PR/tags) ; à réécrire pour le mécanisme à deux tags
-      (`revue-ok/<sha>`, `eval-ok/<sha>`) décrit dans
+- [x] `.github/workflows/llmops.yml` — remplacé par 4 workflows séparés par
+      rôle (`ci.yml`, `revue.yml`, `gate.yml`, `cd-main.yml`), mécanisme à
+      deux tags (`revue-ok/<sha>`, `eval-ok/<sha>`) décrit dans
       `conception_figee/chantier1_llmops/gel-eval-avant-fusion.md`. **Exemple
-      à suivre (tranché 2026-09-22)** : même principe de gates que
+      suivi (tranché 2026-09-22)** : même principe de gates que
       `/projets/QualiCheck/.gitea/workflows/` (`ci.yml`, `revue.yml`,
       `gate.yml`, `cd-staging.yml` — syntaxe GitHub Actions, transposable
-      telle quelle) — 4 workflows séparés par rôle, garde bash
+      telle quelle) — garde bash
       `git tag --points-at "$SHA" | grep -q '^revue-ok/'`, pose de tag
       idempotente (skip si déjà posé), compte technique dédié + token
       restreint pour poser les tags (jamais le développeur),
-      `fetch-depth: 0` sur tout job qui lit des tags. **Déclenchement manuel
-      du gate = tag `gate/<sha7>` poussé par le développeur** (pas de
-      `workflow_dispatch`), même logique que `revue-ok`/`eval-ok`.
+      `fetch-depth: 0` sur tout job qui lit des tags. Déclenchement manuel
+      du gate = tag `gate/<sha7>` poussé par le développeur (pas de
+      `workflow_dispatch`), même logique que `revue-ok`/`eval-ok`. Revue finale
+      de branche (2026-09-22) : corrections appliquées (xfail des 4 tests
+      hors périmètre, réordonnancement gate-avant-push-image, commit du
+      registre après publication, permissions `revue.yml`) — voir
+      `MEMORY.md` et `CHANGELOG.md`. `ops/deploy.py::surveiller` et
+      `app/gateway.py` restent hors périmètre (chantier 2).
 - [x] **Conciliation architecture avant CI/CD (point 3)** : pas besoin de la
       rouvrir, l'architecture actée pour l'API (`docs/spec-v2.md` §4 — un seul
       artefact Docker partagé, 3 containers/rôles v1/v2/gateway, Caddy en

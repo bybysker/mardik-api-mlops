@@ -263,6 +263,39 @@ Deux autres points tranchés le même jour :
   écrite avant d'avoir accès au stub réel et ne tranchait pas ce doublon
   explicitement ; c'est le test d'acceptance gelé qui fixe la réponse.
 
+## Chaîne LLMOps — plan exécuté (2026-09-22, branche `sdd/chaine-llmops`)
+
+Les 8 tâches du plan (`docs/superpowers/plans/2026-09-22-chaine-llmops.md`)
+sont terminées et relues : `prochaine_version`, `evaluer` (gate d'évaluation),
+`publier`/`deployer_canary`/`promouvoir`/`rollback`, les 4 workflows
+(`ci.yml`, `revue.yml`, `gate.yml`, `cd-main.yml`) qui remplacent
+`llmops.yml`. `surveiller()` et `app/gateway.py` restent hors périmètre
+(chantier 2), conformément à la décision de périmètre ci-dessus.
+
+La revue finale de branche (avant fusion vers `dev`) a trouvé plusieurs
+problèmes, corrigés dans la même vague de correctifs : les 4 tests
+d'acceptance hors périmètre bloquaient `tests` (donc `evaluation`, donc
+`eval-ok`) — marqués `xfail(strict=False)` ; le commentaire d'en-tête de
+`cd-main.yml` affirmait à tort qu'aucun gate n'était rejoué sur `main` alors
+que `publier()` sans `--rapport` relance un vrai gate payant ; le push Docker
+vers `ghcr.io` se faisait avant le gate (`publier`), risquant de publier une
+image jamais validée ; la version ne progressait jamais d'un run CD à
+l'autre car `ops/registry/v*` (sauf `v1.0.0`) est gitignored sur chaque
+runner — un nouveau step commit désormais le répertoire de version
+fraîchement créé, poussé avec `GITHUB_TOKEN` (jamais un PAT, pour éviter une
+boucle de déclenchement infinie sur `push: main`) ; le prérequis fast-forward-only
+sur `main` (nécessaire à la validité du mécanisme à deux tags) était
+implicite, maintenant documenté ; `revue.yml` n'avait pas de bloc
+`permissions:` explicite.
+
+**La chaîne reste non exercée de bout en bout en conditions réelles** : les
+prérequis hors code restent à faire par l'utilisateur — compte
+`mardik-relecteur`, secret `CI_TAG_TOKEN`, secrets Azure, règles de
+protection de tag (`revue-ok/*`, `eval-ok/*`, `v*`), protection de branche
+`main` en fast-forward-only. Les workflows sont implémentés et relus mais
+jamais exécutés sur un vrai dépôt GitHub. Prêt pour fusion vers `dev` une
+fois ces prérequis GitHub mis en place par l'utilisateur.
+
 ## Environnement technique
 
 - Dépôt git propre à `mardik-api-mlops`, remote `origin` =
