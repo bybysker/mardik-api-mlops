@@ -38,6 +38,7 @@ Ligne de commande : ``python -m ops.deploy publier v2.0.0 | canary v2.0.0 --pour
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -58,6 +59,28 @@ def _commit_courant() -> str:
         ).strip()
     except Exception:
         return "local"
+
+
+def prochaine_version(bump: str = "patch", registry: Registry | None = None) -> str:
+    """Calcule la prochaine version SemVer à partir de la dernière du registre.
+
+    ``bump`` : ``"patch"`` (défaut, auto-incrémenté à chaque build validé),
+    ``"minor"`` ou ``"major"`` (montés manuellement, cf. versionnage.md).
+    """
+    reg = registry or Registry()
+    versions = reg.versions()
+    if not versions:
+        return "v1.0.0"
+    major, minor, patch = (int(x) for x in versions[-1].lstrip("v").split("."))
+    if bump == "major":
+        major, minor, patch = major + 1, 0, 0
+    elif bump == "minor":
+        minor, patch = minor + 1, 0
+    elif bump == "patch":
+        patch += 1
+    else:
+        raise ValueError(f"bump invalide : {bump!r} (attendu patch/minor/major)")
+    return f"v{major}.{minor}.{patch}"
 
 
 def publier(
