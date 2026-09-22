@@ -38,12 +38,14 @@
 
 ## Chantier 1 — La chaîne LLMOps
 
-- [ ] **Exécution en cours (2026-09-22), en pause** : plan à 8 tâches
-      (`docs/superpowers/plans/2026-09-22-chaine-llmops.md`), dans un worktree
-      isolé (`.worktrees/chaine-llmops/`, branche `sdd/chaine-llmops`, pas
-      encore fusionnée). Tâche 1/8 faite et revue (`ops.deploy.prochaine_version`).
-      Reprendre à la tâche 2 (`eval.run_eval.evaluer`). Détail : `MEMORY.md`
-      (« En cours »).
+- [x] **Plan à 8 tâches exécuté et fusionné dans `dev`** (2026-09-22,
+      commit `2f1c53c`) : `docs/superpowers/plans/2026-09-22-chaine-llmops.md`.
+      Détail complet dans `MEMORY.md`.
+- [ ] **Prérequis GitHub restants, hors code, avant un premier run réel** :
+      compte `mardik-relecteur`, secret `CI_TAG_TOKEN`, secrets Azure
+      (`AZURE_LLM_MODEL`, `AZURE_AI_ENDPOINT`, `AZURE_AI_API_KEY`,
+      `AZURE_AI_API_VERSION`), protection des tags `revue-ok/*`/`eval-ok/*`/`v*`,
+      protection de branche `main` en fast-forward-only. Voir `MEMORY.md`.
 - [x] **Tranché (2026-09-22)** : `CANARY_PERCENT` et `MOCK` restent des
       valeurs par défaut statiques dans `.env`. Le pilotage dynamique du
       pourcentage canary relève du chantier 2 (registre/serveur de

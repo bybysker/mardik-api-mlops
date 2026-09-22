@@ -263,7 +263,7 @@ Deux autres points tranchés le même jour :
   écrite avant d'avoir accès au stub réel et ne tranchait pas ce doublon
   explicitement ; c'est le test d'acceptance gelé qui fixe la réponse.
 
-## Chaîne LLMOps — plan exécuté (2026-09-22, branche `sdd/chaine-llmops`)
+## Chaîne LLMOps — plan exécuté et fusionné (2026-09-22)
 
 Les 8 tâches du plan (`docs/superpowers/plans/2026-09-22-chaine-llmops.md`)
 sont terminées et relues : `prochaine_version`, `evaluer` (gate d'évaluation),
@@ -288,13 +288,23 @@ sur `main` (nécessaire à la validité du mécanisme à deux tags) était
 implicite, maintenant documenté ; `revue.yml` n'avait pas de bloc
 `permissions:` explicite.
 
+**Fusionné dans `dev`** (commit `2f1c53c`, fast-forward local, worktree et
+branche `sdd/chaine-llmops` supprimés après fusion — tests vérifiés verts
+sur le résultat fusionné : 68 passed, 4 xfailed, ruff clean).
+
 **La chaîne reste non exercée de bout en bout en conditions réelles** : les
-prérequis hors code restent à faire par l'utilisateur — compte
-`mardik-relecteur`, secret `CI_TAG_TOKEN`, secrets Azure, règles de
-protection de tag (`revue-ok/*`, `eval-ok/*`, `v*`), protection de branche
-`main` en fast-forward-only. Les workflows sont implémentés et relus mais
-jamais exécutés sur un vrai dépôt GitHub. Prêt pour fusion vers `dev` une
-fois ces prérequis GitHub mis en place par l'utilisateur.
+prérequis hors code restent à faire par l'utilisateur avant le premier vrai
+run — compte `mardik-relecteur`, secret `CI_TAG_TOKEN`, secrets Azure
+(`AZURE_LLM_MODEL`, `AZURE_AI_ENDPOINT`, `AZURE_AI_API_KEY`,
+`AZURE_AI_API_VERSION`), règles de protection de tag (`revue-ok/*`,
+`eval-ok/*`, `v*`), protection de branche `main` en fast-forward-only. Les
+workflows sont implémentés et relus mais jamais exécutés sur un vrai dépôt
+GitHub — un premier run réel (tag `gate/<sha7>` puis fusion `dev` → `main`)
+reste à faire une fois ces prérequis en place, avec une vigilance
+particulière sur le push du registre par le bot (`GITHUB_TOKEN`) si des
+règles de protection de branche plus strictes que prévu bloquent les pushs
+de bots sur `main` (point relevé, non testé, lors de la revue finale de
+branche).
 
 ## Environnement technique
 

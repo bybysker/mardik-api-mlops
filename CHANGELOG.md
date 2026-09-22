@@ -73,6 +73,13 @@
     tête » (pas de merge commit en ff-only).
   - `revue.yml` : ajout du bloc `permissions: contents: read` (les autres
     workflows l'avaient déjà).
+- **Fusionné dans `dev`** (commit `2f1c53c`, fusion locale, tests vérifiés
+  verts sur le résultat fusionné : 68 passed, 4 xfailed, ruff clean).
+  Worktree `.worktrees/chaine-llmops/` et branche `sdd/chaine-llmops`
+  supprimés après fusion. Conflit de fusion sur `MEMORY.md` résolu (deux
+  sections « En cours » divergentes sur le même sujet, `dev` avait avancé
+  pendant l'exécution du plan) — `TODO.md`/`CHANGELOG.md` fusionnés sans
+  conflit.
 
 ## 2026-09-21 (topologie : containers `v2` et `serveur_pilotage`, ports distincts)
 
