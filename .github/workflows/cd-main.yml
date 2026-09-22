@@ -4,7 +4,10 @@ name: CD — main
 # une fois que le SHA de tête porte revue-ok/<sha> et eval-ok/<sha> (cf.
 # conception_figee/chantier1_llmops/gel-eval-avant-fusion.md — la garantie
 # vient de la comparaison de SHA ci-dessous, pas d'un réglage GitHub).
-# main ne rejoue aucun gate : build -> publication -> canary 10 % seulement.
+# main rejoue le gate d'évaluation réel une seconde fois (publier() n'a pas de
+# moyen, depuis le CLI, de réutiliser le rapport du gate déjà passé sur dev —
+# simplification assumée, cf. design) : build -> publication (gate réel) ->
+# canary 10 % seulement.
 # Pas de promotion ni de rollback automatiques (chantier 2, surveiller()
 # hors périmètre). Voir
 # docs/superpowers/specs/2026-09-22-chaine-llmops-design.md.
@@ -18,7 +21,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -79,6 +82,8 @@ jobs:
       - name: Calculer la prochaine version
         id: version
         run: |
+          # patch par défaut, sauf [minor]/[major] dans le message du commit de
+          # tête de main (fusions ff-only : pas de commit de fusion, cf. design)
           BUMP=patch
           MESSAGE=$(git log -1 --pretty=%B "${{ github.sha }}")
           if echo "$MESSAGE" | grep -q '\[major\]'; then BUMP=major; fi
@@ -86,6 +91,17 @@ jobs:
           VERSION=$(uv run python -c "from ops.deploy import prochaine_version; print(prochaine_version('$BUMP'))")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "[ok] prochaine version : $VERSION (bump=$BUMP)"
+
+      - name: Publier la version (gate + étiquetage dans le registre)
+        run: uv run python -m ops.deploy publier "${{ steps.version.outputs.version }}" --bundle v2 --seuil 0.75
+
+      - name: Committer la nouvelle version dans le registre
+        run: |
+          git config user.name "mardik-ci"
+          git config user.email "mardik-ci@users.noreply.github.com"
+          git add -f "ops/registry/${{ steps.version.outputs.version }}/"
+          git commit -m "chore(registry): publish ${{ steps.version.outputs.version }}"
+          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:main
 
       - name: Connexion au registre GitHub (ghcr.io)
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
@@ -95,9 +111,6 @@ jobs:
 
       - name: Pousser l'image
         run: docker push "ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}"
-
-      - name: Publier la version (gate + étiquetage dans le registre)
-        run: uv run python -m ops.deploy publier "${{ steps.version.outputs.version }}" --bundle v2 --seuil 0.75
 
       - name: Déployer en canary
         run: uv run python -m ops.deploy canary "${{ steps.version.outputs.version }}"
