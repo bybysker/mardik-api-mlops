@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+from app.llm_client import Bundle
+
 
 def test_prochaine_version_patch_par_defaut(registry):
     from ops.deploy import prochaine_version
@@ -28,9 +30,6 @@ def test_prochaine_version_bump_invalide(registry):
 
     with pytest.raises(ValueError):
         prochaine_version("oups", registry=registry)
-
-
-from app.llm_client import Bundle
 
 
 def _livrer_v2(registry, version="v2.0.0"):
