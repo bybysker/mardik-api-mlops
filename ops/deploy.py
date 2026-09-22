@@ -43,6 +43,7 @@ import sys
 import time
 from typing import Any
 
+from app.llm_client import Bundle
 from app.telemetry import MetricsStore
 from ops.registry import Registry
 
@@ -91,7 +92,21 @@ def publier(
     seuil: float = 0.75,
     rapport: Any | None = None,
 ) -> dict[str, Any]:
-    raise NotImplementedError("deploy.publier — gate puis étiquetage dans le registre")
+    reg = registry or Registry()
+    commit = commit or _commit_courant()
+    if rapport is None:
+        from eval.run_eval import evaluer
+
+        rapport = evaluer(bundle, seuil=seuil)
+    if not rapport.passe:
+        raise ErreurDeploiement(
+            "gate d'évaluation en échec : " + "; ".join(rapport.motifs)
+        )
+    manifest = reg.etiqueter(
+        version, Bundle.charger(bundle), commit=commit, note_eval=rapport.note
+    )
+    reg.journaliser("publication", version=version, commit=commit, note_eval=rapport.note)
+    return manifest
 
 
 def deployer_canary(
