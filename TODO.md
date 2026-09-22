@@ -38,6 +38,12 @@
 
 ## Chantier 1 — La chaîne LLMOps
 
+- [ ] **Exécution en cours (2026-09-22), en pause** : plan à 8 tâches
+      (`docs/superpowers/plans/2026-09-22-chaine-llmops.md`), dans un worktree
+      isolé (`.worktrees/chaine-llmops/`, branche `sdd/chaine-llmops`, pas
+      encore fusionnée). Tâche 1/8 faite et revue (`ops.deploy.prochaine_version`).
+      Reprendre à la tâche 2 (`eval.run_eval.evaluer`). Détail : `MEMORY.md`
+      (« En cours »).
 - [x] **Tranché (2026-09-22)** : `CANARY_PERCENT` et `MOCK` restent des
       valeurs par défaut statiques dans `.env`. Le pilotage dynamique du
       pourcentage canary relève du chantier 2 (registre/serveur de

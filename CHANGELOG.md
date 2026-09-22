@@ -35,6 +35,14 @@
   scindé courts/longs décidé en conception (`note-evaluation.md`) — aucun test
   ne verrouille l'une ou l'autre formule, le garde-fou visé reste assuré via
   `seuil_note` par contrat (détail dans le design).
+- **Plan écrit, exécution démarrée puis mise en pause** : plan à 8 tâches
+  (`docs/superpowers/plans/2026-09-22-chaine-llmops.md`), exécuté via
+  `superpowers:subagent-driven-development` dans un worktree isolé
+  (`.worktrees/chaine-llmops/`, branche `sdd/chaine-llmops`, non fusionnée).
+  **Tâche 1/8 terminée et revue** : `ops.deploy.prochaine_version` (SemVer
+  patch/minor/major depuis le registre), commits `55abf9a` puis `c33489e`
+  (fix — import `os` retiré, à réajouter par la tâche 4). Tâches 2 à 8 pas
+  commencées. Détail complet dans `MEMORY.md` (« En cours »).
 
 ## 2026-09-21 (topologie : containers `v2` et `serveur_pilotage`, ports distincts)
 

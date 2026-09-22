@@ -263,6 +263,34 @@ Deux autres points tranchés le même jour :
   écrite avant d'avoir accès au stub réel et ne tranchait pas ce doublon
   explicitement ; c'est le test d'acceptance gelé qui fixe la réponse.
 
+## En cours — exécution du plan chaîne LLMOps (2026-09-22, en pause)
+
+Spec (`docs/superpowers/specs/2026-09-22-chaine-llmops-design.md`) et plan
+(`docs/superpowers/plans/2026-09-22-chaine-llmops.md`, 8 tâches) écrits et
+validés. Exécution démarrée via `superpowers:subagent-driven-development`,
+**mise en pause par l'utilisateur** après la tâche 1 — reprendre à la
+tâche 2 (`eval.run_eval.evaluer`).
+
+- **Espace de travail isolé** : `.worktrees/chaine-llmops/` (worktree git,
+  branche `sdd/chaine-llmops`, créée depuis `dev` au commit `7740b5c`) —
+  créé manuellement (`git worktree add`) plutôt qu'avec l'outil natif
+  `EnterWorktree`, dont le réglage par défaut (`fresh`) serait parti de
+  `origin/main` et aurait perdu tous les commits de `dev` non encore
+  poussés. **Rien fusionné vers `dev` à ce stade.**
+- **Ledger d'avancement** : `.worktrees/chaine-llmops/.superpowers/sdd/2026-09-22-chaine-llmops/progress.md`.
+- **Tâche 1/8 terminée et revue** (`ops.deploy.prochaine_version`) : commits
+  `55abf9a` (implémentation) puis `c33489e` (fix — import `os` retiré,
+  inutilisé avant la tâche 4 qui en aura besoin pour lire `CANARY_PERCENT`),
+  revue de tâche ✅ conforme, 4/4 tests verts. **La tâche 4 doit réajouter
+  `import os`** (ce n'est plus fait par la tâche 1).
+- **Tâches 2 à 8** : pas commencées (`evaluer`, `publier`,
+  `deployer_canary`/`promouvoir`/`rollback`, puis les 4 workflows GitHub
+  Actions).
+- Préférence utilisateur pour cette exécution : sous-agents dispatchés un
+  par un (jamais en parallèle — déjà la règle par défaut du skill), modèle
+  Haiku quand la tâche le permet (transcription de code déjà entièrement
+  spécifié dans le plan).
+
 ## Environnement technique
 
 - Dépôt git propre à `mardik-api-mlops`, remote `origin` =
