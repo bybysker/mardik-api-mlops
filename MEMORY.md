@@ -290,16 +290,25 @@ implicite, maintenant documenté ; `revue.yml` n'avait pas de bloc
 
 **Fusionné dans `dev`** (commit `2f1c53c`, fast-forward local, worktree et
 branche `sdd/chaine-llmops` supprimés après fusion — tests vérifiés verts
-sur le résultat fusionné : 68 passed, 4 xfailed, ruff clean).
+sur le résultat fusionné : 68 passed, 4 xfailed, ruff clean). **Poussée vers
+GitHub** (`origin/dev`, 2026-09-22) : le dépôt distant `wawawaformation/mardik-api-mlops`
+n'avait jusque-là que `main` (squelette de départ, `protected: false`).
 
 **La chaîne reste non exercée de bout en bout en conditions réelles** : les
 prérequis hors code restent à faire par l'utilisateur avant le premier vrai
-run — compte `mardik-relecteur`, secret `CI_TAG_TOKEN`, secrets Azure
-(`AZURE_LLM_MODEL`, `AZURE_AI_ENDPOINT`, `AZURE_AI_API_KEY`,
-`AZURE_AI_API_VERSION`), règles de protection de tag (`revue-ok/*`,
-`eval-ok/*`, `v*`), protection de branche `main` en fast-forward-only. Les
-workflows sont implémentés et relus mais jamais exécutés sur un vrai dépôt
-GitHub — un premier run réel (tag `gate/<sha7>` puis fusion `dev` → `main`)
+run — compte `mardik-relecteur` (inscription manuelle : `gh` ne peut pas
+créer un compte GitHub), secret `CI_TAG_TOKEN` (PAT à générer depuis ce
+compte), secrets Azure (`AZURE_LLM_MODEL`, `AZURE_AI_ENDPOINT`,
+`AZURE_AI_API_KEY`, `AZURE_AI_API_VERSION`), règles de protection de tag
+(`revue-ok/*`, `eval-ok/*`, `v*` — faisable via `gh api`, décision explicite
+de l'utilisateur de reporter), protection de branche `main` (GitHub n'a pas
+de bouton « fast-forward only » natif ; l'équivalent le plus proche est
+« Require linear history », qui interdit les merge commits sans être
+strictement identique — la fraîcheur des deux tags reste de toute façon
+vérifiée par `cd-main.yml` lui-même, donc cette protection est un filet
+supplémentaire, pas le mécanisme principal). Les workflows sont implémentés
+et relus mais jamais exécutés sur un vrai dépôt GitHub — un premier run réel
+(tag `gate/<sha7>` puis fusion `dev` → `main`)
 reste à faire une fois ces prérequis en place, avec une vigilance
 particulière sur le push du registre par le bot (`GITHUB_TOKEN`) si des
 règles de protection de branche plus strictes que prévu bloquent les pushs

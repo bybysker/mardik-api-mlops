@@ -2,6 +2,18 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-22 (branche `dev` poussée sur GitHub + 3 schémas chantier 1)
+
+- **`dev` poussée vers GitHub** (`origin/dev`) : le dépôt distant
+  `wawawaformation/mardik-api-mlops` n'avait jusque-là que `main` (squelette
+  de départ). Protections de tags/branche et prérequis (`mardik-relecteur`,
+  `CI_TAG_TOKEN`, secrets Azure) volontairement reportés — décision
+  explicite de l'utilisateur, détail dans `MEMORY.md`.
+- **3 schémas draw.io ajoutés** (`docs/img/`), couvrant les 3 points du
+  chantier 1 : `chantier1-trois-points_reel.drawio` (vue d'ensemble, renvoie
+  vers `pipeline-v2.drawio` pour le point 2), `chaine-llmops-deux-tags_reel.drawio`
+  et `cd-main-deroule_reel.drawio` (détail du point 3).
+
 ## 2026-09-22 (chantier 1 point 3 : décisions de périmètre + design de la chaîne LLMOps)
 
 - **Périmètre du point 3 tranché** : `llmops.yml` + `ops/deploy.py::publier/
