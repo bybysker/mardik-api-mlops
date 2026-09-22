@@ -1,0 +1,45 @@
+name: Revue — preuve d'approbation
+
+# Pose revue-ok/<sha7> quand mardik-relecteur (compte GitHub dédié à la
+# revue, jamais le développeur) approuve une PR vers main, sur le SHA de
+# tête de la PR. Auto-revue assumée : le second compte est un mécanisme de
+# fraîcheur (le SHA approuvé doit être celui de tête), pas une deuxième
+# personne — même principe que le pipeline QualiCheck
+# (/projets/QualiCheck/.gitea/workflows/revue.yml), adapté à la vraie
+# payload GitHub (review.state == 'approved', review.user.login — sur
+# Gitea ces deux champs ont un nom différent, cf. le commentaire de leur
+# fichier ; ici on utilise les champs GitHub natifs). Voir
+# docs/superpowers/specs/2026-09-22-chaine-llmops-design.md.
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  revue-ok:
+    if: >-
+      github.event.review.state == 'approved'
+      && github.event.review.user.login == 'mardik-relecteur'
+      && github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout au SHA relu
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          token: ${{ secrets.CI_TAG_TOKEN }}
+
+      - name: Poser revue-ok sur le SHA relu
+        run: |
+          SHA="${{ github.event.pull_request.head.sha }}"
+          SHA7=$(git rev-parse --short=7 "$SHA")
+          if git tag --points-at "$SHA" | grep -q '^revue-ok/'; then
+            echo "[ok] revue-ok déjà posé sur $SHA (nouvelle approbation sur le même SHA)"
+            exit 0
+          fi
+          git config user.name "mardik-ci"
+          git config user.email "mardik-ci@users.noreply.github.com"
+          git tag "revue-ok/$SHA7" "$SHA"
+          git push origin "revue-ok/$SHA7"
+          echo "[ok] revue-ok/$SHA7 posé sur $SHA"
