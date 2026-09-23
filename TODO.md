@@ -59,10 +59,12 @@
       **Plus aucun prérequis bloquant** : la chaîne est exerçable de bout
       en bout (PR `dev → main`, approbation depuis le compte de revue, tag
       `gate/<sha7>`, fusion).
-- [ ] **Protections de tags et de branche** (`revue-ok/*`, `eval-ok/*`,
-      `v*`, `main` en linear history) — reportées à la demande de
-      l'utilisateur (2026-09-23). Filet supplémentaire : `cd-main.yml`
-      vérifie déjà lui-même la présence des deux tags.
+- [x] **Protections de tags et de branche posées (2026-09-23)** : rulesets
+      GitHub `protection-dev-main` (`dev`/`main` — pas de suppression, pas
+      de force-push, historique linéaire, **sans** « require a pull request
+      before merging », qui interdirait la fusion fast-forward en ligne de
+      commande) et `protection-tags-preuves` (`revue-ok/*`, `eval-ok/*`,
+      `v*` — pas de suppression, pas de mise à jour ; `gate/*` reste libre).
 - [x] **Tranché (2026-09-22)** : `CANARY_PERCENT` et `MOCK` restent des
       valeurs par défaut statiques dans `.env`. Le pilotage dynamique du
       pourcentage canary relève du chantier 2 (registre/serveur de
@@ -144,12 +146,20 @@ Plan exécuté le 2026-09-23 sur `feature/chaine-llmops-intents` :
       nouveau un ancêtre de `dev` — le merge commit `aec3112` de la PR #1 a
       disparu, la fusion fast-forward `dev → main` est donc à nouveau
       possible.
-- [ ] **Vérifier la chaîne bout en bout sur une vraie PR `feature/x → dev`**
-      approuvée par `connarddu16-design`, dans les deux issues (CI verte :
-      `revue-ok` posé ; CI rouge : tag refusé). C'est la seule vérification
-      qui exerce réellement le garde de `revue.yml` — l'historique du dépôt
-      ne contient à ce jour aucune exécution `ci.yml` en échec, le cas rouge
-      n'a donc été validé que par relecture.
+- [x] **Cas CI verte vérifié en conditions réelles (2026-09-23)** : PR #2
+      (`feature/chaine-llmops-intents → dev`), approuvée par
+      `connarddu16-design` — `revue-ok/6373259` posé après vérification du
+      lot A, puis `gate/6373259` déclenché à la main → `eval-ok/6373259`
+      posé (vraie évaluation Azure, gate passé) → fast-forward `feature →
+      dev` poussé, PR fermée d'elle-même. `dev` est désormais à `6373259`,
+      gelé (`revue-ok` + `eval-ok` sur le même SHA). `main` reste
+      volontairement à `8c59599` : la fusion vers `main` est une décision de
+      déploiement séparée, pas encore prise.
+- [ ] **Cas CI rouge non vérifié** : le garde de `revue.yml` (lot A vert
+      avant `revue-ok`) n'a été exercé que côté succès. L'historique du
+      dépôt ne contient aucune exécution `ci.yml` en échec — le refus n'a
+      donc été validé que par relecture du `case` dans le YAML, jamais en
+      conditions réelles.
 
 ## Chantier 2 — Pilotage
 
