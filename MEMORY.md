@@ -354,6 +354,28 @@ branche).
   sur la suite complète, ruff clean. Le cœur logique du chantier 2
   (gateway, dashboard, surveiller) est posé ; restent le câblage HTTP du
   serveur de pilotage, le client web, et `docs/exploitation.md`.
+- **`ops/serveur_pilotage.py` implémenté** (TDD, `tests/unit/test_serveur_pilotage.py`
+  réécrit). **Conflit de conception tranché** : la conception voulait deux
+  nouveaux fichiers (`ops/registre.json` par fingerprint,
+  `ops/journal_pilotage.jsonl`) ; le serveur de pilotage réutilise
+  `ops/registry/` existant à la place (une seule source de vérité, déjà
+  branchée sur `app/gateway.py`/`ops/deploy.py`) — détail complet et
+  conséquences (identité par SemVer pas fingerprint, v1/v2 = `v1.0.0` vs
+  tout le reste, reshape du journal) dans
+  `docs/conception_revue/pilotage/formats-ops.md` (nouveau). Seul vrai
+  nouveau fichier : `ops/regles_pilotage.json` (les 4 seuils ajustables,
+  qui n'avaient nulle part où vivre — `ops.deploy.surveiller` les prend en
+  paramètres de fonction). `ops/deploy.py::deployer_canary/promouvoir/
+  rollback` acceptent maintenant `**details` (déclencheur/signal) transmis
+  au journal, rétrocompatible. `POST /pilotage/promotion` implémente le
+  vrai critère « v2 ≥ v1 » de `canary.md` (contraintes client + jamais
+  moins bonne + strictement meilleure sur ≥1 signal). **Correctif
+  d'isolation** : `tests/conftest.py` isole maintenant aussi
+  `METRICS_PATH_V2` (sans ça, les routes sans `metriques` explicite
+  auraient lu le vrai `ops/metrics_v2.jsonl` du dépôt). Hors périmètre,
+  documenté : régénération Caddyfile (pas de container Caddy encore), et
+  bouclage des règles ajustables sur la décision automatique. Suite :
+  **100 passed**, ruff clean.
 
 ## Environnement technique
 

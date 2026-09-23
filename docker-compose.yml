@@ -86,14 +86,18 @@ services:
     depends_on:
       - app
 
-  # Le serveur de pilotage — SQUELETTE (ops/serveur_pilotage.py) : les 6 routes
-  # du contrat gelé répondent 501, la logique est le chantier 2. Ni env_file ni
-  # METRICS_PATH : à ce stade le module ne lit et n'écrit aucun fichier.
+  # Le serveur de pilotage (ops/serveur_pilotage.py) : les 6 routes du
+  # contrat gelé, réutilisant ops/registry/ existant (voir en-tête du
+  # module et docs/conception_revue/pilotage/formats-ops.md).
   serveur_pilotage:
     build: .
     command: uvicorn ops.serveur_pilotage:app --host 0.0.0.0 --port 8000
     ports:
       - "8002:8000"
+    environment:
+      METRICS_PATH: /app/ops/metrics.jsonl
+      METRICS_PATH_V2: /app/ops/metrics_v2.jsonl
+      REGISTRY_PATH: /app/ops/registry
     volumes:
       - ./ops:/app/ops
     healthcheck:

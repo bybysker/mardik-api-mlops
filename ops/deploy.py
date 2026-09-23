@@ -112,16 +112,16 @@ def publier(
 
 
 def deployer_canary(
-    version: str, pourcentage: int | None = None, registry: Registry | None = None
+    version: str, pourcentage: int | None = None, registry: Registry | None = None, **details: Any
 ) -> dict[str, Any]:
     reg = registry or Registry()
     pct = pourcentage if pourcentage is not None else int(os.environ.get("CANARY_PERCENT", "10"))
     reg.definir_canary(version, pct)
-    reg.journaliser("canary", version=version, pourcentage=pct)
+    reg.journaliser("canary", version=version, pourcentage=pct, **details)
     return reg.index()
 
 
-def promouvoir(version: str, registry: Registry | None = None) -> dict[str, Any]:
+def promouvoir(version: str, registry: Registry | None = None, **details: Any) -> dict[str, Any]:
     reg = registry or Registry()
     reg.manifest(version)  # lève ErreurRegistre si version inconnue
     idx = reg.index()
@@ -129,11 +129,11 @@ def promouvoir(version: str, registry: Registry | None = None) -> dict[str, Any]
     reg.ecrire_index(
         {**idx, "active": version, "precedente": precedente, "canary": None, "canary_percent": 0}
     )
-    reg.journaliser("promotion", version=version, precedente=precedente)
+    reg.journaliser("promotion", version=version, precedente=precedente, **details)
     return reg.index()
 
 
-def rollback(registry: Registry | None = None, motif: str = "manuel") -> dict[str, Any]:
+def rollback(registry: Registry | None = None, motif: str = "manuel", **details: Any) -> dict[str, Any]:
     reg = registry or Registry()
     idx = reg.index()
     avant = {"active": idx.get("active"), "canary": idx.get("canary")}
@@ -143,7 +143,7 @@ def rollback(registry: Registry | None = None, motif: str = "manuel") -> dict[st
         idx = {**idx, "active": idx.get("precedente"), "precedente": idx.get("active")}
     reg.ecrire_index(idx)
     apres = {"active": idx.get("active"), "canary": idx.get("canary")}
-    reg.journaliser("rollback", motif=motif, avant=avant, apres=apres)
+    reg.journaliser("rollback", motif=motif, avant=avant, apres=apres, **details)
     return reg.index()
 
 

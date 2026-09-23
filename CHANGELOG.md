@@ -2,6 +2,50 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (chantier 2 : `ops/serveur_pilotage.py` implémenté)
+
+- **Conflit de conception tranché** : la conception prévoyait deux nouveaux
+  fichiers (`ops/registre.json` par fingerprint, `ops/journal_pilotage.jsonl`)
+  pour le serveur de pilotage ; le chantier 1 avait déjà posé `ops/registry/`
+  (classe `Registry`, identifiée par étiquette SemVer) et branché
+  `app/gateway.py`/`ops/deploy.py` dessus. **Décision : le serveur de
+  pilotage réutilise `ops/registry/` existant**, pas de nouveau fichier —
+  une seule source de vérité plutôt que deux à synchroniser. Détail complet :
+  `docs/conception_revue/pilotage/formats-ops.md` (nouveau).
+- **`ops/serveur_pilotage.py` : les 6 routes du contrat gelé implémentées**
+  (TDD, `tests/unit/test_serveur_pilotage.py` entièrement réécrit — les
+  anciens tests vérifiaient des 501, remplacés par le comportement réel) :
+  - `GET /pilotage/dashboard` — réutilise `ops.dashboard.resume()` +
+    calculs globaux (latence P95, coût moyen, distribution du score),
+    reshapés vers le schéma `Dashboard` gelé.
+  - `GET/PUT /pilotage/regles` — nouveau fichier `ops/regles_pilotage.json`
+    (seul vrai nouveau fichier), seedé avec les 4 règles du tableau de
+    pilotage (`docs/conception_revue/pilotage/tableau-pilotage.md`).
+    Ajustement tracé au journal.
+  - `POST /pilotage/promotion` — implémente le vrai critère « v2 ≥ v1 »
+    (`canary.md` révisé) : contraintes client (P95 < 8 s, coût < 0,15 €,
+    erreur < 10 %) + v2 jamais moins bonne + strictement meilleure sur au
+    moins un signal, comparée sur la fenêtre canary (120 s, 10 mesures
+    min. par version) ; 409 si critères non tenus ou pas assez de mesures.
+  - `POST /pilotage/rollback` — expose `ops.deploy.rollback()`.
+  - `GET /pilotage/journal` — reshape `ops/registry/journal.jsonl` vers le
+    schéma `EntreeJournal` gelé, filtre par `signal`, limite.
+- **`ops/deploy.py::deployer_canary/promouvoir/rollback` acceptent
+  désormais `**details`** transmis au journal (`declencheur`, `signal`) —
+  rétrocompatible (tous les appels existants inchangés), nécessaire pour que
+  le journal distingue une décision déclenchée *via* le serveur de pilotage
+  d'une décision `ops/deploy.py` en ligne de commande.
+- **Isolation de test corrigée** : `tests/conftest.py` (fixture `environnement`,
+  autouse) isole désormais aussi `METRICS_PATH_V2` — sans ça, toute route
+  n'injectant pas de `MetricsStore` explicite (dashboard, promotion) aurait
+  lu le vrai `ops/metrics_v2.jsonl` du dépôt (gitignored, données locales
+  périmées) au lieu d'un fichier de test isolé.
+- **Hors périmètre, documenté** : régénération du Caddyfile (aucun container
+  Caddy dans `docker-compose.yml` à ce stade) ; bouclage des seuils
+  ajustables sur la décision automatique (`ops.deploy.surveiller` garde ses
+  seuils par défaut, ne lit pas encore `ops/regles_pilotage.json`).
+- Suite complète : **100 passed**, ruff clean.
+
 ## 2026-09-23 (chantier 2 : `ops/deploy.py::surveiller` implémenté)
 
 - **`ops/deploy.py::surveiller` implémenté** (TDD, 9 tests ajoutés à

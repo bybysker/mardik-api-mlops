@@ -98,10 +98,19 @@
 - [x] Squelette `ops/serveur_pilotage.py` : 6 routes du contrat gelé en 501,
       corps validés par les modèles Pydantic du contrat, `/health` pour le
       healthcheck (service compose `serveur_pilotage`, port hôte 8002)
-- [ ] Logique du serveur de pilotage : lecture de `ops/metrics.jsonl`,
-      décisions (fenêtre 120 s / 300 s, minimum 10 mesures — voir
-      `docs/conception_revue/pilotage/fenetre-glissante-seuils.md`), écriture
-      du registre et de `ops/journal_pilotage.jsonl`, régénération du Caddyfile
+- [x] Logique du serveur de pilotage implémentée (2026-09-23, TDD,
+      `tests/unit/test_serveur_pilotage.py` réécrit) : les 6 routes lisent
+      les métriques (via `ops/dashboard.py`), décident (dashboard, critère
+      de promotion `canary.md`), écrivent le registre et journalisent —
+      **en réutilisant `ops/registry/` existant**, pas de nouveau
+      `ops/registre.json`/`ops/journal_pilotage.jsonl` (conflit de
+      conception tranché, détail dans
+      `docs/conception_revue/pilotage/formats-ops.md`, nouveau). Nouveau
+      fichier `ops/regles_pilotage.json` pour les 4 seuils ajustables (`PUT
+      /pilotage/regles/{signal}`, tracé au journal). Restent hors
+      périmètre, documentés dans ce même fichier : régénération du
+      Caddyfile (pas de container Caddy encore) et bouclage des règles
+      ajustables sur la décision automatique de `ops.deploy.surveiller`.
 - [x] **Arbitrage tranché (2026-09-22)** : pas de duplication à résoudre.
       `ops/dashboard.py::resume()` reste la fonction de calcul (imposée par
       le test d'acceptance fourni `test_dashboard_par_version`) ;
