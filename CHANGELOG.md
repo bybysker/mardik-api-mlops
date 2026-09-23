@@ -2,6 +2,72 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (script de démo v1 → v2 → pilotage + correctif `prochaine_version`)
+
+- **`docs/demo-v1-v2-pilotage.md` (nouveau)** : déroulé écrit à suivre en
+  présentant en direct (9 étapes, ~10-12 min) — v1 (contrat historique),
+  v2 (contrat long, sans troncature), publication + canary (terminal),
+  routage gateway observé (`X-Mardik-Version`), tableau de bord et règles
+  de pilotage, promotion (critère v2 ≥ v1, 200 ou 409 selon les mesures),
+  rollback immédiat, journal des décisions.
+- **`bruno/mardik-demo-cto/` (nouveau, collection Bruno partagée)** : les
+  requêtes HTTP de chaque étape (9 fichiers `.bru` numérotés), même
+  format que le pattern déjà pratiqué sur d'autres projets
+  (`velmo-v2/bruno/velmo-demo-cto/`) — chaque requête porte son
+  explication dans un bloc `docs {}`. `.gitignore` ajusté (`bruno/*` +
+  `!bruno/mardik-demo-cto/`) : le reste de `bruno/` (requêtes locales
+  personnelles) reste non versionné, seule cette collection de démo est
+  partagée intentionnellement. URLs en dur (`http://localhost:8000/8001/8002`)
+  dans chaque requête — pas de variable d'environnement Bruno à
+  sélectionner avant de cliquer.
+- **Bug d'écriture des `.bru` corrigé — indentation du bloc `body:json`** :
+  3 requêtes sur 9 (celles avec un corps multi-lignes) ne s'ouvraient pas
+  dans Bruno (panneau générique « File Info », plus d'onglets
+  Params/Body/Headers), repéré par l'utilisateur sur une capture d'écran.
+  Cause réelle : `json.dumps(indent=2)` produit des accolades en **colonne
+  0**, et le parseur `.bru` termine le bloc `body:json { … }` au premier
+  `}` en début de ligne — l'accolade fermante du JSON fermait donc le bloc
+  trop tôt, laissant une accolade orpheline qui cassait le parse du fichier
+  entier. Corrigé en indentant chaque ligne du corps de 2 espaces.
+  **Deux fausses pistes écartées en chemin** (taille du corps, puis `\n`
+  échappés) : la vérification s'est faite à l'aveugle par allers-retours
+  avec l'utilisateur jusqu'à installer le vrai parseur de Bruno
+  (`npm i @usebruno/lang`) et rejouer les 9 fichiers localement — il
+  reproduit l'erreur exacte (`Line 21, col 1`) et confirme maintenant 9/9
+  fichiers valides, corps JSON intacts, **contrat long de 62 Ko inclus**
+  (la taille n'était donc pour rien dans le problème).
+- **Malentendu corrigé en cours de route** : une première version de ce
+  livrable était un script Python d'automatisation
+  (`scripts/demo.py`) — pas ce qui était demandé (« script de démo » =
+  déroulé de présentation, pas un programme). Supprimé avant commit ; voir
+  l'incident ci-dessous, découvert en le testant.
+- **Incident (avant la correction ci-dessus) — bug réel découvert par
+  accident** : en vérifiant que ce script Python (depuis supprimé)
+  échouait proprement sans services disponibles, une exécution complète a
+  eu lieu par erreur contre la stack Docker réellement démarrée
+  (`MOCK=off`, `LLM_PROVIDER=azure`) — **coût réel engagé (~0,15 €, 50
+  appels LLM)**, sans autorisation préalable. En creusant l'état du
+  registre qui en a résulté
+  (`ops/registry/v1.0.1/` contenant en réalité le bundle **v2**), un vrai
+  bug produit a été mis au jour : `ops/deploy.py::prochaine_version`
+  calculait la prochaine version à partir de **toutes** les versions du
+  registre, sans distinguer la lignée v1 (figée, `v1.0.0` uniquement) de
+  la lignée v2 (évolutive) — avec seulement `v1.0.0` enregistré (état
+  initial normal d'un dépôt jamais encore déployé en v2), le premier
+  vrai déploiement v2 via `cd-main.yml` aurait été étiqueté `v1.0.1` au
+  lieu de `v2.0.0`.
+- **Correctif** (TDD) : `prochaine_version(bump, registry, bundle="v2")`
+  filtre désormais les versions du registre par lignée (`manifest.json`
+  → champ `strategie`, comparé à celle du `bundle` demandé) ; sans version
+  de cette lignée, renvoie directement la version déclarée par le bundle
+  (`models/v2/config.yaml::version` = `v2.0.0`), sans jamais bumper depuis
+  `v1.0.0`. `tests/unit/test_deploy.py` : les 4 tests existants
+  encodaient le comportement buggé (`prochaine_version(registry=registry)
+  == "v1.0.1"` avec seulement `v1.0.0` dans le registre) — réécrits pour
+  refléter le comportement corrigé, 2 tests ajoutés (première publication
+  ignore v1, v1 reste ignorée après plusieurs publications v2). Suite
+  complète : **102 passed**, ruff clean.
+
 ## 2026-09-23 (`docs/exploitation.md` complété — dernier point du chantier 2)
 
 - **Les 7 sections du gabarit rédigées** : qu'est-ce qu'une version

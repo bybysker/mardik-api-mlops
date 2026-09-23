@@ -9,22 +9,51 @@ from app.llm_client import Bundle
 from app.telemetry import Mesure, MetricsStore
 
 
+def _livrer_v2(registry, version="v2.0.0"):
+    registry.etiqueter(version, Bundle.charger("v2"), commit="abc1234", note_eval=0.9)
+    return version
+
+
+def test_prochaine_version_premiere_publication_v2_ignore_v1(registry):
+    """Seul v1.0.0 (code figé, jamais réétiqueté) est dans le registre : la
+    première publication v2 doit prendre la version déclarée par le bundle
+    (`models/v2/config.yaml::version`), pas un bump de v1.0.0. Bug corrigé
+    le 2026-09-23 : `prochaine_version` mélangeait les deux lignées et
+    renvoyait `v1.0.1` pour ce qui était en réalité un premier build v2."""
+    from ops.deploy import prochaine_version
+
+    assert prochaine_version(registry=registry) == "v2.0.0"
+    assert prochaine_version("major", registry=registry) == "v2.0.0"
+    assert prochaine_version("minor", registry=registry) == "v2.0.0"
+
+
 def test_prochaine_version_patch_par_defaut(registry):
     from ops.deploy import prochaine_version
 
-    assert prochaine_version(registry=registry) == "v1.0.1"
+    _livrer_v2(registry)
+    assert prochaine_version(registry=registry) == "v2.0.1"
 
 
 def test_prochaine_version_minor(registry):
     from ops.deploy import prochaine_version
 
-    assert prochaine_version("minor", registry=registry) == "v1.1.0"
+    _livrer_v2(registry)
+    assert prochaine_version("minor", registry=registry) == "v2.1.0"
 
 
 def test_prochaine_version_major(registry):
     from ops.deploy import prochaine_version
 
-    assert prochaine_version("major", registry=registry) == "v2.0.0"
+    _livrer_v2(registry)
+    assert prochaine_version("major", registry=registry) == "v3.0.0"
+
+
+def test_prochaine_version_ignore_toujours_v1_apres_plusieurs_publications_v2(registry):
+    from ops.deploy import prochaine_version
+
+    _livrer_v2(registry, "v2.0.0")
+    _livrer_v2(registry, "v2.0.1")
+    assert prochaine_version(registry=registry) == "v2.0.2"
 
 
 def test_prochaine_version_bump_invalide(registry):
@@ -32,11 +61,6 @@ def test_prochaine_version_bump_invalide(registry):
 
     with pytest.raises(ValueError):
         prochaine_version("oups", registry=registry)
-
-
-def _livrer_v2(registry, version="v2.0.0"):
-    registry.etiqueter(version, Bundle.charger("v2"), commit="abc1234", note_eval=0.9)
-    return version
 
 
 def test_deployer_canary_pourcentage_par_defaut(registry):

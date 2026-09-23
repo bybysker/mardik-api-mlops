@@ -1,0 +1,29 @@
+meta {
+  name: 7. Pilotage — promotion canary (50 %)
+  type: http
+  seq: 7
+}
+
+post {
+  url: http://localhost:8002/pilotage/promotion
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "cible_pct": 50,
+    "declencheur": "humain"
+  }
+}
+
+docs {
+  200 si la v2 respecte les contraintes client ET n'est jamais moins bonne
+  que v1 ET strictement meilleure sur au moins un signal (latence/coût/
+  erreur) sur la fenêtre d'observation ; 409 sinon (motifs explicites dans
+  la réponse — normal si l'étape 4 n'a pas encore généré assez de trafic).
+}

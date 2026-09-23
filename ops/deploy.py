@@ -63,25 +63,40 @@ def _commit_courant() -> str:
         return "local"
 
 
-def prochaine_version(bump: str = "patch", registry: Registry | None = None) -> str:
-    """Calcule la prochaine version SemVer à partir de la dernière du registre.
+def prochaine_version(
+    bump: str = "patch", registry: Registry | None = None, bundle: str = "v2"
+) -> str:
+    """Calcule la prochaine version SemVer, dans la lignée du ``bundle``
+    donné (``"v2"`` par défaut — la seule lignée qui évolue : v1 est figée,
+    jamais réétiquetée, voir AGENTS.md).
 
     ``bump`` : ``"patch"`` (défaut, auto-incrémenté à chaque build validé),
     ``"minor"`` ou ``"major"`` (montés manuellement, cf. versionnage.md).
+
+    Ignore toute version d'une autre lignée (identifiée par la ``strategie``
+    du manifeste, ex. ``v1.0.0`` en ``monolithique``) : un bug corrigé le
+    2026-09-23 mélangeait les deux lignées dès lors que seule ``v1.0.0``
+    était enregistrée, produisant ``v1.0.1`` pour ce qui était en réalité
+    une première publication v2. Sans version de cette lignée dans le
+    registre (première publication), renvoie directement la version
+    déclarée par le bundle (``models/<bundle>/config.yaml::version``).
     """
+    if bump not in {"patch", "minor", "major"}:
+        raise ValueError(f"bump invalide : {bump!r} (attendu patch/minor/major)")
     reg = registry or Registry()
-    versions = reg.versions()
-    if not versions:
-        return "v1.0.0"
-    major, minor, patch = (int(x) for x in versions[-1].lstrip("v").split("."))
+    strategie_cible = Bundle.charger(bundle).strategie
+    versions_lignee = [
+        v for v in reg.versions() if reg.manifest(v).get("strategie") == strategie_cible
+    ]
+    if not versions_lignee:
+        return Bundle.charger(bundle).version
+    major, minor, patch = (int(x) for x in versions_lignee[-1].lstrip("v").split("."))
     if bump == "major":
         major, minor, patch = major + 1, 0, 0
     elif bump == "minor":
         minor, patch = minor + 1, 0
-    elif bump == "patch":
-        patch += 1
     else:
-        raise ValueError(f"bump invalide : {bump!r} (attendu patch/minor/major)")
+        patch += 1
     return f"v{major}.{minor}.{patch}"
 
 

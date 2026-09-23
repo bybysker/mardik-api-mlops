@@ -1,0 +1,26 @@
+meta {
+  name: 8. Pilotage — rollback immédiat
+  type: http
+  seq: 8
+}
+
+post {
+  url: http://localhost:8002/pilotage/rollback
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "declencheur": "humain"
+  }
+}
+
+docs {
+  Retour à v1 à 100 % en une opération, sans redémarrage — rejouer 3.
+  Gateway — état juste après pour vérifier `canary: null`.
+}

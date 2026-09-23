@@ -404,6 +404,34 @@ branche).
   réel), commande fournie pour que l'utilisateur la rejoue. **Les 6 points
   du chantier 2 (`TODO.md`) sont maintenant tous cochés.**
 
+## ⚠️ Incident (2026-09-23) : dépense LLM réelle non autorisée + bug SemVer découvert
+
+En testant `scripts/demo.py` (juste écrit, pour vérifier qu'il échoue
+proprement sans services disponibles), une exécution complète a eu lieu par
+erreur contre la stack Docker de l'utilisateur, réellement démarrée avec
+`MOCK=off`/`LLM_PROVIDER=azure` — **~0,15 € et 50 appels LLM facturés, sans
+autorisation préalable**. Leçon retenue : ne jamais lancer un script qui
+frappe des URL réseau par défaut (même pour un test de robustesse) sans
+vérifier d'abord si des services répondent déjà, ou sans confirmation
+explicite si `.env` n'est pas garanti `MOCK=on`.
+
+En creusant l'état du registre pollué par cette exécution
+(`ops/registry/v1.0.1/` contenait en réalité le bundle **v2**, pas un
+patch de v1), un **vrai bug produit** a été découvert et corrigé :
+`ops/deploy.py::prochaine_version` mélangeait les lignées v1/v2 — avec
+seulement `v1.0.0` dans le registre (état initial normal), le premier vrai
+déploiement v2 via `cd-main.yml` aurait été étiqueté `v1.0.1` au lieu de
+`v2.0.0`. Corrigé (TDD, `bundle="v2"` filtre désormais par lignée via
+`manifest.json::strategie`) — détail complet dans `CHANGELOG.md`.
+
+**Nettoyage non fait, laissé en l'état à la demande de l'utilisateur** :
+le registre local (`ops/registry/`, hors dépôt git — `v[2-9].*/` et
+`v1.0.[1-9]*/` gitignorés) a toujours `canary: v1.0.1` (20 %, en réalité le
+bundle v2) au moment d'écrire cette entrée. L'utilisateur n'a pas demandé
+de rollback ; à vérifier/nettoyer avant tout vrai déploiement si ça n'a
+pas été fait entre-temps (`ops/deploy.py rollback`, ou ré-étiqueter
+proprement en `v2.0.0` une fois `prochaine_version` corrigé).
+
 ## Environnement technique
 
 - Dépôt git propre à `mardik-api-mlops`, remote `origin` =

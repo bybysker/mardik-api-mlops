@@ -154,6 +154,27 @@
       pas de démo HTTP bout en bout complète — nécessite Docker + un vrai
       modèle, commande fournie pour que l'utilisateur la rejoue).
 
+## Divers
+
+- [x] `scripts/demo.py` : démo guidée v1 → v2 → pilotage pour présentation
+      (2026-09-23), bandeau `MOCK=...` avant toute étape.
+- [x] **Bug corrigé (2026-09-23)** : `ops/deploy.py::prochaine_version`
+      mélangeait les lignées v1/v2 — le premier vrai déploiement v2 via
+      `cd-main.yml` aurait été étiqueté `v1.0.1` au lieu de `v2.0.0`.
+      Détail : `CHANGELOG.md`/`MEMORY.md` (section incident).
+- [ ] **Registre local à vérifier/nettoyer** : `ops/registry/` (non
+      versionné) a `canary: v1.0.1` (en réalité le bundle v2, mal
+      étiqueté par l'incident du 2026-09-23) — laissé en l'état à la
+      demande de l'utilisateur, pas nettoyé automatiquement.
+- [x] `docs/demo-v1-v2-pilotage.md` + `bruno/mardik-demo-cto/` (2026-09-23) :
+      déroulé de présentation v1 → v2 → pilotage et les 9 requêtes HTTP
+      correspondantes. **Règle à retenir pour tout `.bru`** : le corps d'un
+      bloc `body:json { … }` doit être indenté (2 espaces) — une accolade
+      en colonne 0 ferme le bloc prématurément et casse le parse du fichier
+      entier (Bruno n'affiche alors que « File Info »). Vérifiable sans
+      ouvrir Bruno : `npm i @usebruno/lang` puis `bruToJsonV2()` sur chaque
+      fichier.
+
 ## Environnement
 
 - [x] Environnement Docker démarré (`make up`), fournisseur Azure configuré

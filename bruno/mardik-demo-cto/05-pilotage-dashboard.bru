@@ -1,0 +1,18 @@
+meta {
+  name: 5. Pilotage — tableau de bord
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:8002/pilotage/dashboard
+  body: none
+  auth: none
+}
+
+docs {
+  Trafic v1/v2 (`trafic`), latence P95, coût moyen, taux d'erreur, et la
+  proportion de scores de confiance faibles (`distribution_score`) — le
+  même écran que `client_web/index.html` (http://localhost:8503), en JSON
+  brut pour montrer que le client web ne fait qu'afficher cette API.
+}
