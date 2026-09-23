@@ -2,6 +2,65 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (mise à plat des intentions — `intents.md`)
+
+- **`intents.md` créé à la racine.** Source de vérité de ce que l'utilisateur
+  veut de la chaîne LLMOps, et **pourquoi** — en amont du code, des workflows
+  et des documents de conception d'implémentation. En cas de désaccord entre
+  un workflow et ce fichier, c'est le workflow qui a tort. Écrit par mise à
+  plat morceau par morceau, après l'incident de la PR #1.
+- **Deux principes directeurs dégagés**, dont tout le reste découle :
+  1. **Informer n'est pas prouver.** Un même test peut informer le
+     développeur (sans trace, sans conséquence) ou établir un fait qui
+     autorise l'étape suivante (écrit, attaché à un SHA, ordonné). Tant qu'on
+     ne sépare pas les deux rôles, les trois lots se ressemblent et on ne
+     comprend pas pourquoi il en faut trois.
+  2. **Attraper au plus tôt, au lot le moins cher** (lot A = secondes,
+     lot B = attention humaine, lot C = argent).
+- **Changement de topologie** : la revue de code se fait désormais sur une PR
+  **`feature/x → dev`**, et non plus `dev → main`. La conception gelée faisait
+  développer directement sur `dev`. Conséquence : **deux** fusions
+  fast-forward au lieu d'une, `feature/x → dev` puis `dev → main`.
+- **Révision consignée** dans
+  `docs/conception_revue/chantier1_llmops/gel-eval-avant-fusion.md` — cinq
+  écarts, pas un désaveu. `conception_figee/chantier1_llmops/gel-eval-avant-fusion.md`
+  est juste sur presque tout (deux tags immuables jamais posés par le
+  développeur, fraîcheur par comparaison de SHA, fast-forward strict, aucun
+  gate rejoué sur `main`, déclenchements manuels). Ce qui a réellement coûté
+  deux jours de compréhension, c'est la note `0c` de
+  `img/ci-feature-dev.drawio` : « le format PR n'améliore pas la revue en soi
+  (un `git diff` ferait aussi bien) — il est nécessaire parce que `main` est
+  protégé ». C'est faux. Un `git diff` **informe** ; la PR est le **seul
+  mécanisme qui transforme une relecture humaine en fait vérifiable par un
+  automate**. Pièce centrale du gel, pas support administratif.
+- **Le second compte GitHub reclassé** : `connarddu16-design` existe parce que
+  GitHub interdit d'approuver sa propre pull request — contrainte de
+  plateforme, pas intention. La conception gelée assume explicitement
+  l'auto-revue (note `0c` : « pas une revue à deux »). Cette nuance n'avait
+  jamais été explicitée avant la création du compte.
+- **Nouvelle intention (I6)** : si un push touche ce qui peut déplacer la note
+  d'évaluation (`models/*/config.yaml`, `app/pipeline/**`,
+  `app/llm_client.py`, `eval/**`), le lot A joue l'évaluation réelle en plus
+  des tests mockés. **Elle ne pose aucun tag** — sinon on obtiendrait
+  `eval-ok` sans passer par la revue. Conséquence assumée : le lot A cesse
+  d'être gratuit sur ces chemins.
+- **Incident PR #1** : la PR `dev → main` a été **fusionnée** au lieu d'être
+  **approuvée** — aucune revue soumise, donc aucun `revue-ok`, et un merge
+  commit (`aec3112`) créé sur `main` alors que la conception impose le
+  fast-forward strict. `cd-main.yml` a refusé de déployer
+  (`[refus] aucun revue-ok/* sur aec3112...`). **C'est à ce jour la seule
+  exécution réelle du mécanisme de gel, et elle a fonctionné** — sur un
+  contournement non simulé. La fusion n'a été possible que parce que les
+  protections de branche et de tag ne sont pas encore configurées.
+- **Point laissé ouvert, volontairement non tranché** : les TA mockés
+  (`tests/acceptance/`, gratuits) appartiennent-ils au lot A avec les TU/TI,
+  ou au lot C comme première marche ? Ils tournent deux fois aujourd'hui — la
+  duplication est volontaire (le gate ne peut pas supposer que le lot A a
+  tourné sur *ce* SHA) mais n'a jamais été décidée intentionnellement.
+- `MEMORY.md` : `intents.md` ajouté en tête de l'ordre de lecture (document 0)
+  et section dédiée. `TODO.md` : nouvelle section « écarts avec `intents.md` »
+  (6 items).
+
 ## 2026-09-23 (collection Bruno fournie restaurée)
 
 - **Régression corrigée** : la collection Bruno livrée avec le squelette du

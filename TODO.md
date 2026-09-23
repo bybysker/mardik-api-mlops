@@ -105,6 +105,39 @@
       resteront rouges tant que le chantier 2 n'est pas fait — attendu, pas
       un défaut du point 3.
 
+## Chaîne LLMOps — écarts avec `intents.md` (2026-09-23)
+
+Issus de la mise à plat des intentions. Référence : `intents.md` (racine) et
+`docs/conception_revue/chantier1_llmops/gel-eval-avant-fusion.md`.
+
+- [ ] **Changer la cible de la revue** : `revue.yml` garde
+      `base.ref == 'main'`, il doit garder `base.ref == 'dev'`. La revue se
+      fait sur une PR `feature/x → dev`. (Écart 1 — topologie.)
+- [ ] **Deux fusions fast-forward au lieu d'une** : `feature/x → dev` puis
+      `dev → main`. Un squash ou un merge commit à l'une des deux étapes
+      fabrique un nouveau SHA, que les tags ne suivent pas. À refléter dans
+      les protections de branche et dans `docs/exploitation.md`.
+- [ ] **Garantir que le lot A est vert avant la revue** (intention I3) :
+      `revue.yml` pose aujourd'hui `revue-ok` sans vérifier l'état de la CI
+      sur ce SHA — on peut approuver du code cassé et obtenir le tag. Pas
+      dangereux (le lot C rejoue les tests mockés avant de payer), mais la
+      détection arrive au lot le plus cher au lieu du moins cher.
+- [ ] **Alerte d'évaluation conditionnelle dans le lot A** (intention I6) :
+      si un push touche `models/*/config.yaml`, `app/pipeline/**`,
+      `app/llm_client.py` ou `eval/**`, jouer l'évaluation réelle en plus des
+      tests mockés. **Ne pose aucun tag** — c'est un signal au développeur,
+      pas une preuve. Conséquence assumée : le lot A cesse d'être gratuit sur
+      ces chemins.
+- [ ] **Trancher : où vont les TA mockés ?** (`tests/acceptance/`, gratuits)
+      Lot A avec les TU/TI, ou première marche du lot C ? Ils tournent deux
+      fois aujourd'hui — duplication volontaire (le gate ne peut pas supposer
+      que le lot A a tourné sur *ce* SHA), jamais tranchée intentionnellement.
+- [ ] **Nettoyer `main`** : la PR #1 a été fusionnée par un merge commit
+      (`aec3112`) au lieu d'être approuvée, avant tout tag. `cd-main.yml` a
+      correctement refusé de déployer. Décider quoi en faire (remise à
+      `8c59599` par force-push, ou laisser l'historique tel quel) — **rien ne
+      doit être fait sans accord explicite de l'utilisateur.**
+
 ## Chantier 2 — Pilotage
 
 - [x] Squelette `ops/serveur_pilotage.py` : 6 routes du contrat gelé en 501,

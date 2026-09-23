@@ -37,6 +37,10 @@ réel se documente dans `docs/conception_revue/` (voir plus bas), jamais en
 
 ## Documents de référence (ordre de lecture)
 
+0. **`intents.md`** (racine) — **les intentions de l'utilisateur et leur
+   *pourquoi*, en amont de tout le reste.** Posé le 2026-09-23. En cas de
+   désaccord entre un workflow et ce fichier, c'est le workflow qui a tort.
+   À lire avant de toucher à la chaîne LLMOps.
 1. `README.md` — structure du dépôt, chantiers, commandes (`make ...`)
 2. `docs/besoin_client.md` — expression de besoin (identique au brief connu)
 3. `docs/schema_remediation.md` — ce que la remédiation a déjà instrumenté
@@ -509,3 +513,49 @@ donc fusion vers `main` refusée sans message clair. Corrigé.
 effet : `ops/drift_proxy.py` [FOURNI] l'ajoute à l'URL amont,
 `ops/azure_adapter.py` la retire, l'API `/openai/v1` la rejette. Elle
 n'est donc pas dans `.env` en local, et c'est normal.
+
+## ⚠️ Mise à plat des intentions (2026-09-23) — `intents.md` fait foi
+
+Après l'incident de la PR #1 (fusionnée au lieu d'être approuvée), mise à
+plat morceau par morceau de ce que l'utilisateur veut réellement de la
+chaîne. Résultat : **`intents.md` à la racine du dépôt**, à lire avant
+toute intervention sur la chaîne LLMOps.
+
+**Le déclic, et la clé de lecture de tout le dispositif** : distinguer
+**informer** de **prouver**. Un même test peut jouer deux rôles
+incompatibles — informer le développeur (sans trace, sans conséquence,
+rejouable) ou établir un fait qui autorise l'étape suivante (écrit,
+attaché à un SHA, ordonné). Tant qu'on ne sépare pas les deux, les trois
+lots se ressemblent et on ne comprend pas pourquoi il en faut trois.
+
+Second principe : **attraper au plus tôt, au lot le moins cher** (lot A =
+secondes, lot B = attention humaine, lot C = argent).
+
+**Changement de topologie** : la revue se fait désormais sur une PR
+**`feature/x → dev`**, plus `dev → main`. La conception gelée faisait
+développer directement sur `dev`. Conséquence : **deux** fusions
+fast-forward au lieu d'une.
+
+**La conception gelée n'est pas désavouée.**
+`conception_figee/chantier1_llmops/gel-eval-avant-fusion.md` est juste sur
+presque tout (deux tags immuables, fraîcheur par SHA, fast-forward strict,
+aucun gate rejoué sur main, déclenchements manuels). C'est son **diagramme**
+qui a coûté deux jours de compréhension : la note 0c de
+`img/ci-feature-dev.drawio` présente la PR comme un pis-aller administratif
+(« un `git diff` ferait aussi bien — il est nécessaire parce que main est
+protégé »). C'est faux : un `git diff` informe, la PR est le **seul
+mécanisme qui transforme une relecture humaine en fait vérifiable par un
+automate**. Pièce centrale, pas accessoire.
+
+Cinq écarts consignés dans
+`docs/conception_revue/chantier1_llmops/gel-eval-avant-fusion.md` :
+topologie `feature/x`, rôle réel de la PR, alerte d'évaluation
+conditionnelle dans le lot A (sans tag), garantie que le lot A est vert
+avant la revue, et le second compte GitHub comme **contrainte de
+plateforme** (GitHub interdit d'approuver sa propre PR) et non comme
+intention — la conception assume l'auto-revue.
+
+**Point resté ouvert** : les TA mockés (`tests/acceptance/`) — lot A avec
+les TU/TI, ou première marche du lot C ? Ils tournent deux fois
+aujourd'hui ; la duplication est volontaire (le gate ne peut pas supposer
+que le lot A a tourné sur *ce* SHA) mais n'a jamais été tranchée.
