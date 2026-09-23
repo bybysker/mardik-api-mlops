@@ -1,7 +1,7 @@
 meta {
-  name: 6. Pilotage — règles (signal × seuil × rétroaction)
+  name: 7. Pilotage — règles (signal × seuil × rétroaction)
   type: http
-  seq: 6
+  seq: 7
 }
 
 get {
@@ -13,6 +13,6 @@ get {
 docs {
   Les 4 signaux pilotés (latence_p95, taux_erreur, score_faible, canary),
   leur seuil, la rétroaction déclenchée et qui déclenche (auto/humain).
-  Ajustables via PUT /pilotage/regles/{signal} — pas de requête Bruno dédiée
-  ici, c'est ce que fait le bouton « Modifier » de client_web/pilotage.html.
+  Ajustables via PUT /pilotage/regles/{signal} — c'est ce que fait le bouton
+  « Modifier » de client_web/pilotage.html.
 }

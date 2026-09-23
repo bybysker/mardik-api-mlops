@@ -1,7 +1,7 @@
 meta {
-  name: 2. v2 — analyse (contrat long, sans troncature)
+  name: 3. v2 — LE MÊME contrat long, sans troncature
   type: http
-  seq: 2
+  seq: 3
 }
 
 post {
@@ -21,9 +21,8 @@ body:json {
 }
 
 docs {
-  Contrat long (eval/contrats/c07.txt, ~62 000 caractères — v1 tronquait
-  tout ce qui dépassait 16 000 caractères, c'était la cause du défaut).
-  Observer : `sections` (découpage par articles), `appels_llm` (un par
-  section, aucune perte), `confiance_globale` (absent de v1), `cout_eur` et
+  Exactement le même contrat qu'en 2, traité par v2 : `sections`
+  (découpage par articles), `appels_llm` (un par section — aucune perte),
+  `confiance_globale` (score composite, absent de v1), `cout_eur` et
   `latence_ms` face aux contraintes client (< 0,15 €, P95 < 8 s).
 }

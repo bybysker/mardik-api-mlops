@@ -2,6 +2,22 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (démo : montrer la troncature v1 en direct)
+
+- **Faiblesse de narration corrigée** : la requête 1 envoyait `c01.txt`
+  (~11 000 caractères, sous la limite de 16 000 de v1) et affichait donc
+  `tronque: false`, pendant que le script affirmait « v1 tronque les
+  contrats longs » — l'écran contredisait le propos. Repéré par
+  l'utilisateur (« pourquoi la requête 1 dit tronque=false ? »).
+- **Collection Bruno réorganisée en 10 requêtes** (au lieu de 9), avec une
+  progression avant/après sur **le même document** : 1. v1 sur contrat
+  court (`tronque: false`, cas nominal) → 2. v1 sur contrat long
+  (**`tronque: true`**, le défaut visible en direct, alors que la liste de
+  clauses paraît normale) → 3. v2 sur **le même** contrat long (toutes les
+  sections traitées, score de confiance). Gateway et pilotage décalés en
+  4 à 10. `docs/demo-v1-v2-pilotage.md` réécrit en conséquence.
+  10/10 fichiers revalidés avec le parseur de Bruno.
+
 ## 2026-09-23 (bug de rollback : plus jamais d'`active: null`)
 
 - **Bug trouvé en diagnostiquant une démo qui « répondait tronqué »**

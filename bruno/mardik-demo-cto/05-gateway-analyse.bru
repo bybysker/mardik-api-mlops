@@ -1,7 +1,7 @@
 meta {
-  name: 4. Gateway — analyse (rejouer plusieurs fois)
+  name: 5. Gateway — analyse (rejouer plusieurs fois)
   type: http
-  seq: 4
+  seq: 5
 }
 
 post {
@@ -21,8 +21,8 @@ body:json {
 }
 
 docs {
-  Rejouer 5 à 10 fois (ou Bruno « Runner », 10 itérations) juste après
-  avoir déployé un canary : l'en-tête X-Mardik-Version change d'une requête
-  à l'autre selon le pourcentage canary — la preuve que le routage relit le
-  registre à chaque requête, sans redémarrage.
+  Rejouer 5 à 10 fois (ou Bruno « Runner ») juste après avoir déployé un
+  canary : l'en-tête X-Mardik-Version change d'une requête à l'autre selon
+  le pourcentage canary — la preuve que le routage relit le registre à
+  chaque requête, sans redémarrage.
 }

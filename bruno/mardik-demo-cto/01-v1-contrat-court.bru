@@ -1,5 +1,5 @@
 meta {
-  name: 1. v1 — analyse (contrat historique, intouchable)
+  name: 1. v1 — contrat court (cas nominal)
   type: http
   seq: 1
 }
@@ -21,8 +21,7 @@ body:json {
 }
 
 docs {
-  Contrat court réel (eval/contrats/c01.txt). Le contrat /v1/analyse n'a
-  jamais changé (code figé, jamais redéployé). Sortie : une simple liste de
-  libellés de clauses (`clauses`), pas de score de confiance — v1 ne sait
-  rien dire sur sa propre fiabilité.
+  Contrat de ~11 000 caractères, sous la limite de v1 (16 000) : `tronque:
+  false`, v1 fait correctement son travail. C'est le cas nominal — la
+  référence avant de montrer le défaut.
 }

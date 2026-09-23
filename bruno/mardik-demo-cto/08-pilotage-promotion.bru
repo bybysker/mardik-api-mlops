@@ -1,7 +1,7 @@
 meta {
-  name: 7. Pilotage — promotion canary (50 %)
+  name: 8. Pilotage — promotion canary (50 %)
   type: http
-  seq: 7
+  seq: 8
 }
 
 post {
@@ -23,7 +23,6 @@ body:json {
 
 docs {
   200 si la v2 respecte les contraintes client ET n'est jamais moins bonne
-  que v1 ET strictement meilleure sur au moins un signal (latence/coût/
-  erreur) sur la fenêtre d'observation ; 409 sinon (motifs explicites dans
-  la réponse — normal si l'étape 4 n'a pas encore généré assez de trafic).
+  que v1 ET strictement meilleure sur au moins un signal ; 409 sinon, avec
+  les motifs (normal si l'étape 5 n'a pas encore généré assez de trafic).
 }

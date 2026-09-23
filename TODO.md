@@ -174,7 +174,7 @@
       conditions réelles pendant 12 min. `rollback()` garde désormais
       l'active en place quand il n'y a rien à annuler.
 - [x] `docs/demo-v1-v2-pilotage.md` + `bruno/mardik-demo-cto/` (2026-09-23) :
-      déroulé de présentation v1 → v2 → pilotage et les 9 requêtes HTTP
+      déroulé de présentation v1 → v2 → pilotage et les 10 requêtes HTTP
       correspondantes. **Règle à retenir pour tout `.bru`** : le corps d'un
       bloc `body:json { … }` doit être indenté (2 espaces) — une accolade
       en colonne 0 ferme le bloc prématurément et casse le parse du fichier
