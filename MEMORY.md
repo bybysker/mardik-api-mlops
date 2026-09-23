@@ -343,6 +343,17 @@ branche).
   `test_rollback_en_une_operation` ne sont plus `xfail`. Suite : 84 passed,
   1 xfailed (reste `test_journal_derive_et_rollback_automatique`, dépend de
   `ops/deploy.py::surveiller`).
+- **`ops/deploy.py::surveiller` implémenté** (TDD, `tests/unit/test_deploy.py`) :
+  surveille le canary s'il y en a un, sinon l'active ; dérive sur score
+  moyen/taux d'erreur/latence P95, minimum de mesures requis, rollback
+  automatique + journal si dérive. `percentile()` et
+  `stores_metriques_par_defaut()` de `ops/dashboard.py` rendues publiques et
+  réutilisées (même besoin de fusion v1/v2 des journaux de métriques,
+  maintenant traité aux deux endroits qui en avaient besoin). Plus aucun
+  test `xfail` dans `tests/acceptance/test_observabilite.py` : **93 passed**
+  sur la suite complète, ruff clean. Le cœur logique du chantier 2
+  (gateway, dashboard, surveiller) est posé ; restent le câblage HTTP du
+  serveur de pilotage, le client web, et `docs/exploitation.md`.
 
 ## Environnement technique
 

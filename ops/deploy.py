@@ -1,4 +1,4 @@
-"""Déploiement : publication, canary, promotion, rollback, surveillance. [STUB]
+"""Déploiement : publication, canary, promotion, rollback, surveillance.
 
 Contrat attendu (le registre — ``ops/registry`` — enregistre ; ce module décide) :
 
@@ -45,7 +45,8 @@ import time
 from typing import Any
 
 from app.llm_client import Bundle
-from app.telemetry import MetricsStore
+from app.telemetry import Mesure, MetricsStore
+from ops.dashboard import percentile, stores_metriques_par_defaut
 from ops.registry import Registry
 
 
@@ -156,7 +157,46 @@ def surveiller(
     latence_p95_max_ms: float = 8000,
     minimum: int = 10,
 ) -> dict[str, Any]:
-    raise NotImplementedError("deploy.surveiller — détection de dérive + rollback automatique")
+    reg = registry or Registry()
+    stores = [metriques] if metriques is not None else stores_metriques_par_defaut()
+    canary, _ = reg.canary()
+    version = canary or reg.active()
+
+    mesures: list[Mesure] = [
+        m for store in stores for m in store.lire(depuis_s=fenetre_s, version=version)
+    ]
+
+    motifs: list[str] = []
+    if len(mesures) >= minimum:
+        taux_erreur = sum(1 for m in mesures if m.erreur) / len(mesures)
+        if taux_erreur > taux_erreur_max:
+            motifs.append(f"taux d'erreur {taux_erreur:.1%} > seuil {taux_erreur_max:.1%}")
+
+        sans_erreur = [m for m in mesures if not m.erreur]
+        scores = [m.score for m in sans_erreur if m.score is not None]
+        if scores:
+            score_moyen = sum(scores) / len(scores)
+            if score_moyen < score_min:
+                motifs.append(f"score moyen {score_moyen:.2f} < seuil {score_min:.2f}")
+
+        latences = sorted(m.latence_ms for m in sans_erreur)
+        if latences:
+            p95 = percentile(latences, 95)
+            if p95 > latence_p95_max_ms:
+                motifs.append(f"latence P95 {p95:.0f}ms > seuil {latence_p95_max_ms:.0f}ms")
+
+    motif = "; ".join(motifs)
+    resultat: dict[str, Any] = {
+        "version": version,
+        "mesures": len(mesures),
+        "derive": bool(motifs),
+        "motif": motif,
+        "rollback": False,
+    }
+    if motifs:
+        rollback(registry=reg, motif=motif)
+        resultat["rollback"] = True
+    return resultat
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -1,6 +1,6 @@
-"""Tableau de bord : latence, erreurs, score de confiance, trafic par version. [STUB]
+"""Tableau de bord : latence, erreurs, score de confiance, trafic par version.
 
-Contrat attendu :
+Contrat :
 
     resume(metriques=None, *, fenetre_s=300) -> dict
         Agrège les mesures des ``fenetre_s`` dernières secondes de
@@ -37,7 +37,7 @@ from ops.registry import Registry
 CHEMIN_METRIQUES_V2_DEFAUT = CHEMIN_METRIQUES_DEFAUT.parent / "metrics_v2.jsonl"
 
 
-def _stores_par_defaut() -> list[MetricsStore]:
+def stores_metriques_par_defaut() -> list[MetricsStore]:
     """Sans ``metriques`` explicite : fusionne le journal v1 (``METRICS_PATH``,
     par défaut ``ops/metrics.jsonl``) et le journal v2 (``METRICS_PATH_V2``,
     par défaut ``ops/metrics_v2.jsonl``) — sinon le trafic du container ``v2``
@@ -46,7 +46,7 @@ def _stores_par_defaut() -> list[MetricsStore]:
     return [MetricsStore(), MetricsStore(chemin_v2)]
 
 
-def _percentile(valeurs: list[float], p: float) -> float:
+def percentile(valeurs: list[float], p: float) -> float:
     if not valeurs:
         return 0.0
     k = (len(valeurs) - 1) * p / 100
@@ -62,7 +62,7 @@ def resume(
     fenetre_s: float = 300,
     registry: Registry | None = None,
 ) -> dict[str, Any]:
-    stores = [metriques] if metriques is not None else _stores_par_defaut()
+    stores = [metriques] if metriques is not None else stores_metriques_par_defaut()
     mesures: list[Mesure] = [m for store in stores for m in store.lire(depuis_s=fenetre_s)]
     registry = registry or Registry()
 
@@ -84,8 +84,8 @@ def resume(
         par_version[version] = {
             "requetes": requetes,
             "trafic_pct": round(requetes / total * 100, 1) if total else 0.0,
-            "latence_p50_ms": _percentile(latences, 50),
-            "latence_p95_ms": _percentile(latences, 95),
+            "latence_p50_ms": percentile(latences, 50),
+            "latence_p95_ms": percentile(latences, 95),
             "taux_erreur": round(sum(1 for m in ms if m.erreur) / requetes, 4) if requetes else 0.0,
             "score_moyen": round(sum(scores) / len(scores), 3) if scores else None,
             "cout_total_eur": round(sum(m.cout_eur for m in sans_erreur), 6),

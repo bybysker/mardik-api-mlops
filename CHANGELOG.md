@@ -2,6 +2,23 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (chantier 2 : `ops/deploy.py::surveiller` implémenté)
+
+- **`ops/deploy.py::surveiller` implémenté** (TDD, 9 tests ajoutés à
+  `tests/unit/test_deploy.py`). Surveille le canary s'il y en a un, sinon
+  l'active ; dérive si score moyen < `score_min`, ou taux d'erreur >
+  `taux_erreur_max`, ou P95 > `latence_p95_max_ms`, sur au moins `minimum`
+  mesures. Rollback automatique + entrée journal en cas de dérive.
+- **Fusion v1/v2 des métriques, complétée** : `percentile()` et
+  `stores_metriques_par_defaut()` (ex-`_percentile`/`_stores_par_defaut`,
+  rendues publiques) de `ops/dashboard.py` sont réutilisées par
+  `surveiller()` — même besoin de ne pas laisser le trafic du container
+  `v2` invisible, déjà résolu côté `dashboard.py` (2026-09-23, entrée
+  précédente).
+- **`tests/acceptance/test_observabilite.py`** : plus aucun test `xfail`,
+  les 5 tests passent réellement (`_HORS_PERIMETRE` et l'import `pytest`
+  devenus inutiles, retirés). Suite complète : **93 passed**, ruff clean.
+
 ## 2026-09-23 (chantier 2 : `app/gateway.py` implémenté)
 
 - **`app/gateway.py` implémenté** (TDD, `tests/unit/test_gateway.py` écrits

@@ -1,10 +1,12 @@
-"""Tests unitaires — ops/deploy.py (publier/canary/promotion/rollback,
-sans app/gateway.py ni surveiller, hors périmètre du point 3)."""
+"""Tests unitaires — ops/deploy.py (publier/canary/promotion/rollback/surveiller)."""
 from __future__ import annotations
+
+import time
 
 import pytest
 
 from app.llm_client import Bundle
+from app.telemetry import Mesure, MetricsStore
 
 
 def test_prochaine_version_patch_par_defaut(registry):
@@ -100,3 +102,128 @@ def test_rollback_avec_canary_en_cours(registry):
 
     assert index["active"] == "v1.0.0"  # inchangé : aucune promotion n'a eu lieu
     assert index["canary"] is None and index["canary_percent"] == 0
+
+
+def test_surveiller_sans_derive(metriques: MetricsStore, registry):
+    from ops.deploy import deployer_canary, surveiller
+
+    _livrer_v2(registry)
+    deployer_canary("v2.0.0", pourcentage=20, registry=registry)
+
+    maintenant = time.time()
+    for _ in range(12):
+        metriques.enregistrer(
+            Mesure(ts=maintenant, version="v2.0.0", route="/analyse", latence_ms=2500, score=0.88)
+        )
+    res = surveiller(registry, metriques, fenetre_s=60, score_min=0.7, minimum=10)
+    assert res == {"version": "v2.0.0", "mesures": 12, "derive": False, "motif": "", "rollback": False}
+    assert registry.canary()[0] == "v2.0.0"
+
+
+def test_surveiller_pas_assez_de_mesures_ne_declenche_rien(metriques: MetricsStore, registry):
+    from ops.deploy import deployer_canary, surveiller
+
+    _livrer_v2(registry)
+    deployer_canary("v2.0.0", pourcentage=20, registry=registry)
+
+    for _ in range(5):
+        metriques.enregistrer(
+            Mesure(ts=time.time(), version="v2.0.0", route="/analyse", latence_ms=2500, score=0.1)
+        )
+    res = surveiller(registry, metriques, fenetre_s=60, score_min=0.7, minimum=10)
+    assert res["derive"] is False and res["rollback"] is False and res["mesures"] == 5
+
+
+def test_surveiller_derive_taux_erreur(metriques: MetricsStore, registry):
+    from ops.deploy import deployer_canary, surveiller
+
+    _livrer_v2(registry)
+    deployer_canary("v2.0.0", pourcentage=20, registry=registry)
+
+    for i in range(10):
+        metriques.enregistrer(
+            Mesure(ts=time.time(), version="v2.0.0", route="/analyse", latence_ms=2500,
+                   erreur=(i < 3), score=0.9)
+        )
+    res = surveiller(registry, metriques, fenetre_s=60, taux_erreur_max=0.10, minimum=10)
+    assert res["derive"] is True and "erreur" in res["motif"]
+    assert registry.canary() == (None, 0)
+
+
+def test_surveiller_derive_latence(metriques: MetricsStore, registry):
+    from ops.deploy import deployer_canary, surveiller
+
+    _livrer_v2(registry)
+    deployer_canary("v2.0.0", pourcentage=20, registry=registry)
+
+    for _ in range(10):
+        metriques.enregistrer(
+            Mesure(ts=time.time(), version="v2.0.0", route="/analyse", latence_ms=9000, score=0.9)
+        )
+    res = surveiller(registry, metriques, fenetre_s=60, latence_p95_max_ms=8000, minimum=10)
+    assert res["derive"] is True and "latence" in res["motif"]
+
+
+def test_surveiller_surveille_le_canary_pas_lactive(metriques: MetricsStore, registry):
+    """Un canary en cours est ce qui est surveillé, pas la version active :
+    l'active peut avoir une dérive sans provoquer de rollback tant que le
+    canary est sain."""
+    from ops.deploy import deployer_canary, surveiller
+
+    _livrer_v2(registry)
+    deployer_canary("v2.0.0", pourcentage=20, registry=registry)
+
+    for _ in range(10):
+        metriques.enregistrer(
+            Mesure(ts=time.time(), version="v1.0.0", route="/analyse", latence_ms=2500, score=0.1)
+        )
+        metriques.enregistrer(
+            Mesure(ts=time.time(), version="v2.0.0", route="/analyse", latence_ms=2500, score=0.9)
+        )
+    res = surveiller(registry, metriques, fenetre_s=60, score_min=0.7, minimum=10)
+    assert res["version"] == "v2.0.0"
+    assert res["derive"] is False and res["rollback"] is False
+
+
+def test_surveiller_sans_canary_surveille_lactive(metriques: MetricsStore, registry):
+    from ops.deploy import surveiller
+
+    for _ in range(10):
+        metriques.enregistrer(
+            Mesure(ts=time.time(), version="v1.0.0", route="/analyse", latence_ms=2500)
+        )
+    res = surveiller(registry, metriques, fenetre_s=60, minimum=10)
+    assert res["version"] == "v1.0.0"
+
+
+def test_surveiller_journalise_le_rollback(metriques: MetricsStore, registry):
+    from ops.deploy import deployer_canary, surveiller
+
+    _livrer_v2(registry)
+    deployer_canary("v2.0.0", pourcentage=20, registry=registry)
+
+    for _ in range(10):
+        metriques.enregistrer(
+            Mesure(ts=time.time(), version="v2.0.0", route="/analyse", latence_ms=2500, score=0.1)
+        )
+    surveiller(registry, metriques, fenetre_s=60, score_min=0.7, minimum=10)
+
+    entree = registry.journal()[-1]
+    assert entree["evenement"] == "rollback"
+    assert entree["avant"]["canary"] == "v2.0.0" and entree["apres"]["canary"] is None
+
+
+def test_surveiller_sans_metriques_explicites_fusionne_v1_et_v2(monkeypatch, tmp_path, registry):
+    from ops.deploy import surveiller
+
+    chemin_v1 = tmp_path / "metrics.jsonl"
+    chemin_v2 = tmp_path / "metrics_v2.jsonl"
+    monkeypatch.setenv("METRICS_PATH", str(chemin_v1))
+    monkeypatch.setenv("METRICS_PATH_V2", str(chemin_v2))
+
+    for _ in range(10):
+        MetricsStore(chemin_v2).enregistrer(
+            Mesure(ts=time.time(), version="v1.0.0", route="/analyse", latence_ms=100)
+        )
+    res = surveiller(registry, fenetre_s=60, minimum=10)
+    assert res["mesures"] == 10

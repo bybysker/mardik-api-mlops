@@ -1,4 +1,4 @@
-"""Tests d'acceptance — pilotage et observabilité (5 tests, tous rouges au départ).
+"""Tests d'acceptance — pilotage et observabilité.
 
 Chaque docstring reprend la phrase du brief : Étant donné / quand / alors.
 """
@@ -6,12 +6,8 @@ from __future__ import annotations
 
 import time
 
-import pytest
-
 from app.llm_client import Bundle
 from app.telemetry import Mesure
-
-_HORS_PERIMETRE = "chantier 2 (app/gateway.py, ops/deploy.py::surveiller) — hors périmètre du point 3"
 
 
 def _livrer_v2(registry, version="v2.0.0"):
@@ -125,7 +121,6 @@ def test_dashboard_par_version(metriques, registry):
     assert "v2.0.0" in rendre_texte(r)
 
 
-@pytest.mark.xfail(reason=_HORS_PERIMETRE, strict=False)
 def test_journal_derive_et_rollback_automatique(metriques, registry):
     """Étant donné un canary v2 dont le score de confiance dérive en production, quand
     la surveillance s'exécute, alors elle détecte la dérive, déclenche le rollback et

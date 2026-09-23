@@ -58,8 +58,8 @@
 - [x] `ops/deploy.py::publier/deployer_canary/promouvoir/rollback` (point 3 ;
       `surveiller` reste chantier 2 (hors périmètre, avec `app/gateway.py`),
       voir décision périmètre ci-dessus)
-- [ ] `ops/dashboard.py::resume/rendre_texte/rendre_html` — fenêtre
-      **temporelle** (`fenetre_s`), voir `docs/conception_revue/pilotage/fenetre-glissante-seuils.md`
+- [x] `ops/dashboard.py::resume/rendre_texte/rendre_html` — fenêtre
+      **temporelle** (`fenetre_s`) — voir détail sous « Chantier 2 — Pilotage »
 - [x] `.github/workflows/llmops.yml` — remplacé par 4 workflows séparés par
       rôle (`ci.yml`, `revue.yml`, `gate.yml`, `cd-main.yml`), mécanisme à
       deux tags (`revue-ok/<sha>`, `eval-ok/<sha>`) décrit dans
@@ -116,12 +116,17 @@
       `METRICS_PATH_V2` (v2, nouvelle variable, `docker-compose.yml` service
       `dashboard`) — condition pour que le trafic du container `v2` ne soit
       pas invisible du tableau de bord.
-- [ ] Faire lire `ops/metrics_v2.jsonl` par `ops/deploy.py::surveiller`
-      (même besoin que `ops/dashboard.py`, déjà traité — condition pour que
-      le trafic du container `v2` soit visible dans la surveillance)
 - [x] `app/gateway.py::choisir_version/etat/analyse` — routage canary
       (2026-09-23, TDD). `test_promotion_canary_puis_totale` et
       `test_rollback_en_une_operation` ne sont plus xfail.
+- [x] `ops/deploy.py::surveiller` implémenté (2026-09-23, TDD) : dérive sur
+      score/taux d'erreur/latence P95 (minimum de mesures requis), rollback
+      automatique + journal. Fusion `ops/metrics.jsonl` +
+      `ops/metrics_v2.jsonl` via `ops/dashboard.py::stores_metriques_par_defaut`
+      (rendue publique, réutilisée). `test_journal_derive_et_rollback_automatique`
+      n'est plus xfail — plus aucun test xfail dans
+      `tests/acceptance/test_observabilite.py` (93 passed sur la suite
+      complète).
 - [ ] `docs/exploitation.md` — gabarit fourni à compléter (7 sections)
 
 ## Environnement
