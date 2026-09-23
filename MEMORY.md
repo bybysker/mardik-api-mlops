@@ -496,7 +496,7 @@ hypothèse, plutôt que de deviner à partir du symptôme rapporté.
 | Compte de revue dédié | ✅ `connarddu16-design`, collaborateur `write` |
 | `revue.yml` pointé sur ce login | ✅ (gardait `mardik-relecteur`, jamais enregistré) |
 | Secrets Azure (4) | ✅ poussés via `gh secret set` depuis `.env` |
-| Secret `CI_TAG_TOKEN` | ⬜ **bloquant** — PAT à générer depuis le compte de revue |
+| Secret `CI_TAG_TOKEN` | ✅ PAT classique du compte de revue (`push` sans `admin`) |
 | Protections tags / branche `main` | ⬜ reportées (choix de l'utilisateur) |
 
 Le vrai nom du compte de revue est **`connarddu16-design`**, pas

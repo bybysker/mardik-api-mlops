@@ -53,10 +53,12 @@
       `AZURE_AI_API_VERSION` (valeur documentée `2024-05-01-preview` —
       sans effet réel : `drift_proxy` l'ajoute à l'URL, `azure_adapter`
       la retire, l'API `/openai/v1` n'en veut pas).
-- [ ] **Secret `CI_TAG_TOKEN`** : PAT à générer **depuis le compte de
-      revue** (`connarddu16-design`) — action manuelle, une session de ce
-      compte est nécessaire. C'est le dernier prérequis bloquant pour un
-      premier run réel.
+- [x] **Secret `CI_TAG_TOKEN` posé (2026-09-23)** : PAT classique émis
+      depuis le compte de revue (`connarddu16-design`), vérifié avant pose
+      (identité du token + `push: true` sans `admin` sur le dépôt).
+      **Plus aucun prérequis bloquant** : la chaîne est exerçable de bout
+      en bout (PR `dev → main`, approbation depuis le compte de revue, tag
+      `gate/<sha7>`, fusion).
 - [ ] **Protections de tags et de branche** (`revue-ok/*`, `eval-ok/*`,
       `v*`, `main` en linear history) — reportées à la demande de
       l'utilisateur (2026-09-23). Filet supplémentaire : `cd-main.yml`

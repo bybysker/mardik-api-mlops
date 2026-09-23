@@ -22,10 +22,21 @@
   absente de `.env` car sans effet réel (`ops/drift_proxy.py` [FOURNI]
   l'ajoute à l'URL, `ops/azure_adapter.py` la retire, l'API `/openai/v1`
   la rejette).
-- **Reste bloquant pour un premier run réel** : le secret `CI_TAG_TOKEN`,
-  un PAT à générer depuis le compte de revue — nécessite une session de ce
-  compte, non automatisable. Protections de tags/branche reportées à la
-  demande de l'utilisateur.
+- **Secret `CI_TAG_TOKEN` posé** : PAT classique émis depuis le compte de
+  revue, vérifié avant la pose (identité confirmée `connarddu16-design`,
+  `push: true` et `admin: false` sur le dépôt — le moindre privilège
+  attendu). **Plus aucun prérequis bloquant** : la chaîne est exerçable de
+  bout en bout. Protections de tags/branche reportées à la demande de
+  l'utilisateur ; `cd-main.yml` vérifie de toute façon lui-même la présence
+  des deux tags.
+- **Note de sécurité** : la création d'un PAT n'est pas exposée par l'API
+  GitHub (interface web uniquement) — aucune commande `gh` ne peut le
+  générer. Le token a transité par la conversation pour être posé en
+  secret : à révoquer/renouveler depuis `github.com/settings/tokens` si ce
+  transcript devait être partagé (lab de formation, le cas est plausible).
+  L'exposition reste faible par construction : le compte émetteur ne
+  possède aucun dépôt et n'a que `push` sur celui-ci — c'est précisément
+  l'intérêt du compte dédié.
 
 ## 2026-09-23 (démo : montrer la troncature v1 en direct)
 
