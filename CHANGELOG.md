@@ -2,6 +2,60 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (chaîne LLMOps alignée sur `intents.md`)
+
+Exécution du plan `docs/superpowers/plans/2026-09-23-chaine-llmops-intents.md`
+sur la branche `feature/chaine-llmops-intents` — les quatre écarts encore
+ouverts de `TODO.md` sont fermés. Aucun code applicatif touché.
+
+- **`revue.yml` : `revue-ok` n'est plus posé que si le lot A est vert**
+  (intention I3). Le workflow interroge l'API GitHub Actions
+  (`workflows/ci.yml/runs?head_sha=…`) sur le SHA de tête de la PR, attend
+  au plus 10 min si la CI tourne encore, et refuse le tag si la conclusion
+  n'est pas `success`. Ce que le tag atteste devient « une approbation **sur
+  du code dont le lot A est vert** ».
+- **Nouveau workflow `alerte-eval.yml`** (intention I6) : un push sur
+  `feature/**` touchant `models/*/config.yaml`, `app/pipeline/**`,
+  `app/llm_client.py` ou `eval/**` joue l'évaluation réelle et l'affiche
+  dans le résumé de job. **Aucun tag, aucun jeton d'écriture** — s'il posait
+  `eval-ok`, on obtiendrait la preuve sans passer par la revue et l'ordre
+  revue → gate s'effondrerait. Fichier séparé et non un job de `ci.yml` :
+  les filtres `paths:` d'Actions s'appliquent au workflow entier, pas à un
+  job.
+- **`docs/exploitation.md` § 3 révisée** : cinq workflows au lieu de quatre,
+  deux fusions fast-forward au lieu d'une, les commandes exactes de fusion,
+  et les rulesets posés sur `dev`/`main` et sur les tags.
+- **D4 tranché — option 1** : les tests d'acceptance mockés restent dans le
+  lot A *et* dans le lot C. La répétition est voulue (au lot A ils
+  informent, au lot C ils prouvent) ; elle est désormais justifiée par écrit
+  dans `docs/exploitation.md` § 3 et en commentaire dans `gate.yml`.
+
+**Les deux points de conception à retenir** :
+
+1. **GitHub n'offre aucune fusion fast-forward dans l'interface de PR.** Ses
+   trois boutons (*merge commit*, *squash*, *rebase*) fabriquent tous un
+   nouveau SHA, que les tags de preuve ne suivent pas. Les deux fusions se
+   font donc en ligne de commande (`git merge --ff-only` + `git push`), et
+   le ruleset *require a pull request before merging* ne doit surtout pas
+   être activé : il interdirait précisément ce geste.
+2. **Un workflow déclenché par `pull_request_review` ne peut pas dépendre
+   d'un job d'un autre workflow.** `needs:` ne relie que des jobs d'une même
+   exécution, et `workflow_run` ne fonctionne que dans l'autre sens. D'où le
+   garde par appel API plutôt qu'une dépendance déclarée — ou qu'un lot A
+   rejoué dans `revue.yml`, qui aurait fait de celui-ci un second `ci.yml` à
+   maintenir en phase.
+
+Vérifications réellement exécutées : les cinq workflows passent
+`yaml.safe_load` ; `gh api` rend `completed success` sur un SHA vert et
+`null null` sur un SHA sans exécution (jamais un faux succès) ; les quatre
+chemins du filtre `paths:` existent ; `MOCK=on uv run python -m
+eval.run_eval --version v2 --seuil 0.75 --contrats c01` imprime la forme
+attendue ; `MOCK=on uv run pytest -q` et `uv run ruff check .` inchangés.
+**Reste à faire** : la vérification bout en bout sur une vraie PR
+`feature/x → dev` approuvée, seule à exercer le garde en conditions réelles
+(l'historique ne contient aucune exécution `ci.yml` en échec, le cas rouge
+n'est validé que par relecture).
+
 ## 2026-09-23 (mise à plat des intentions — `intents.md`)
 
 - **`intents.md` créé à la racine.** Source de vérité de ce que l'utilisateur

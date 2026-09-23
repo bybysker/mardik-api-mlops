@@ -110,33 +110,46 @@
 Issus de la mise à plat des intentions. Référence : `intents.md` (racine) et
 `docs/conception_revue/chantier1_llmops/gel-eval-avant-fusion.md`.
 
-- [ ] **Changer la cible de la revue** : `revue.yml` garde
-      `base.ref == 'main'`, il doit garder `base.ref == 'dev'`. La revue se
-      fait sur une PR `feature/x → dev`. (Écart 1 — topologie.)
-- [ ] **Deux fusions fast-forward au lieu d'une** : `feature/x → dev` puis
+Plan exécuté le 2026-09-23 sur `feature/chaine-llmops-intents` :
+`docs/superpowers/plans/2026-09-23-chaine-llmops-intents.md` (spec :
+`docs/superpowers/specs/2026-09-23-chaine-llmops-intents.md`).
+
+- [x] **Changer la cible de la revue** : `revue.yml` garde désormais
+      `base.ref == 'dev'`. La revue se fait sur une PR `feature/x → dev`.
+      (Écart 1 — topologie ; commit `eeb55b2`.)
+- [x] **Deux fusions fast-forward au lieu d'une** : `feature/x → dev` puis
       `dev → main`. Un squash ou un merge commit à l'une des deux étapes
-      fabrique un nouveau SHA, que les tags ne suivent pas. À refléter dans
-      les protections de branche et dans `docs/exploitation.md`.
-- [ ] **Garantir que le lot A est vert avant la revue** (intention I3) :
-      `revue.yml` pose aujourd'hui `revue-ok` sans vérifier l'état de la CI
-      sur ce SHA — on peut approuver du code cassé et obtenir le tag. Pas
-      dangereux (le lot C rejoue les tests mockés avant de payer), mais la
-      détection arrive au lot le plus cher au lieu du moins cher.
-- [ ] **Alerte d'évaluation conditionnelle dans le lot A** (intention I6) :
-      si un push touche `models/*/config.yaml`, `app/pipeline/**`,
-      `app/llm_client.py` ou `eval/**`, jouer l'évaluation réelle en plus des
-      tests mockés. **Ne pose aucun tag** — c'est un signal au développeur,
-      pas une preuve. Conséquence assumée : le lot A cesse d'être gratuit sur
-      ces chemins.
-- [ ] **Trancher : où vont les TA mockés ?** (`tests/acceptance/`, gratuits)
-      Lot A avec les TU/TI, ou première marche du lot C ? Ils tournent deux
-      fois aujourd'hui — duplication volontaire (le gate ne peut pas supposer
-      que le lot A a tourné sur *ce* SHA), jamais tranchée intentionnellement.
-- [ ] **Nettoyer `main`** : la PR #1 a été fusionnée par un merge commit
-      (`aec3112`) au lieu d'être approuvée, avant tout tag. `cd-main.yml` a
-      correctement refusé de déployer. Décider quoi en faire (remise à
-      `8c59599` par force-push, ou laisser l'historique tel quel) — **rien ne
-      doit être fait sans accord explicite de l'utilisateur.**
+      fabrique un nouveau SHA, que les tags ne suivent pas. Rulesets posés
+      sur `dev` et `main` (force-push et suppression bloqués, historique
+      linéaire) et sur les tags `revue-ok/*`, `eval-ok/*`, `v*` (immuables) ;
+      les commandes exactes de fusion sont écrites dans
+      `docs/exploitation.md` § 3.
+- [x] **Garantir que le lot A est vert avant la revue** (intention I3) :
+      `revue.yml` interroge l'API GitHub Actions sur `ci.yml` pour le SHA de
+      tête de la PR, attend au plus 10 min si la CI tourne encore, et refuse
+      de poser `revue-ok` si la conclusion n'est pas `success`.
+- [x] **Alerte d'évaluation conditionnelle dans le lot A** (intention I6) :
+      `.github/workflows/alerte-eval.yml`, déclenché par un push sur
+      `feature/**` touchant `models/*/config.yaml`, `app/pipeline/**`,
+      `app/llm_client.py` ou `eval/**`. **Ne pose aucun tag** et ne reçoit
+      aucun jeton d'écriture — c'est un signal au développeur, pas une
+      preuve. Conséquence assumée : le lot A cesse d'être gratuit sur ces
+      chemins.
+- [x] **Trancher : où vont les TA mockés ?** → **option 1** (2026-09-23) :
+      ils restent dans le lot A *et* dans le lot C. La répétition est
+      voulue — au lot A ils informent, au lot C ils prouvent. Justification
+      écrite dans `docs/exploitation.md` § 3 et en commentaire dans
+      `gate.yml`, pour qu'aucune relecture future ne la « nettoie ».
+- [x] **Nettoyer `main`** : `origin/main` est revenu à `8c59599` et est de
+      nouveau un ancêtre de `dev` — le merge commit `aec3112` de la PR #1 a
+      disparu, la fusion fast-forward `dev → main` est donc à nouveau
+      possible.
+- [ ] **Vérifier la chaîne bout en bout sur une vraie PR `feature/x → dev`**
+      approuvée par `connarddu16-design`, dans les deux issues (CI verte :
+      `revue-ok` posé ; CI rouge : tag refusé). C'est la seule vérification
+      qui exerce réellement le garde de `revue.yml` — l'historique du dépôt
+      ne contient à ce jour aucune exécution `ci.yml` en échec, le cas rouge
+      n'a donc été validé que par relecture.
 
 ## Chantier 2 — Pilotage
 

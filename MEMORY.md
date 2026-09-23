@@ -559,3 +559,53 @@ intention — la conception assume l'auto-revue.
 les TU/TI, ou première marche du lot C ? Ils tournent deux fois
 aujourd'hui ; la duplication est volontaire (le gate ne peut pas supposer
 que le lot A a tourné sur *ce* SHA) mais n'a jamais été tranchée.
+**Tranché le 2026-09-23, voir ci-dessous.**
+
+## Chaîne LLMOps alignée sur `intents.md` (2026-09-23)
+
+Plan `docs/superpowers/plans/2026-09-23-chaine-llmops-intents.md` exécuté
+sur `feature/chaine-llmops-intents`. Les quatre écarts ouverts sont fermés.
+À retenir, dans l'ordre de ce qui coûte le plus cher à réapprendre :
+
+**1. Ne jamais activer *require a pull request before merging*** sur `dev`
+ni sur `main`. C'est le piège le plus coûteux de ce lot : cette règle
+interdirait le `git push origin dev` de la fusion fast-forward — exactement
+le geste que la chaîne impose, puisque **aucun des trois boutons de fusion
+de GitHub ne fait de fast-forward** (merge commit, squash et rebase
+fabriquent tous un nouveau SHA, que les tags de preuve ne suivent pas). Les
+rulesets posés se limitent donc à : force-push et suppression bloqués,
+*require linear history*, sur `dev` et `main` ; tags `revue-ok/*`,
+`eval-ok/*`, `v*` immuables et non supprimables (`gate/*` reste libre, c'est
+un déclencheur, pas une preuve). **L'interdit de fusionner sans preuve est
+porté par les tags, pas par la plateforme** — c'est précisément ce que I5
+cherchait en choisissant le tag.
+
+**2. D4 tranché — option 1** : les TA mockés restent dans le lot A (`ci.yml`)
+*et* dans le lot C (`gate.yml`). La duplication est **voulue** : au lot A ils
+**informent** (gratuits, ils doivent voir une régression au push), au lot C
+ils **prouvent** (le gate ne peut pas supposer que le lot A a tourné sur *ce*
+SHA). Deux rôles du même test, pas un doublon. Justifié par écrit dans
+`docs/exploitation.md` § 3 et en commentaire dans `gate.yml` pour qu'aucune
+relecture future ne le « nettoie ».
+
+**3. `alerte-eval.yml` rend le lot A payant sur quatre chemins** :
+`models/*/config.yaml`, `app/pipeline/**`, `app/llm_client.py`, `eval/**`.
+Un push sur `feature/**` qui les touche déclenche 12 contrats d'évaluation
+réelle. Ce workflow **ne pose aucun tag et ne reçoit aucun jeton
+d'écriture** : s'il posait `eval-ok`, on obtiendrait la preuve sans passer
+par la revue et l'ordre revue → gate s'effondrerait (I2 + I6). Une alerte
+rouge ne bloque rien — le garde de `revue.yml` ne regarde que `ci.yml`.
+
+**4. Contrainte de plateforme à ne pas réessayer** : un workflow déclenché
+par `pull_request_review` ne peut pas dépendre d'un job d'un autre
+workflow — `needs:` ne relie que des jobs d'une même exécution, et
+`workflow_run` ne va que dans l'autre sens. D'où le garde « lot A vert » de
+`revue.yml` écrit comme un appel à l'API GitHub Actions sur
+`workflows/ci.yml/runs?head_sha=…` (et non `gh pr checks`, qui attendrait
+*tous* les checks du SHA, y compris l'alerte d'évaluation). Renommer
+`ci.yml` casserait ce garde.
+
+**Reste ouvert** : la vérification bout en bout sur une vraie PR
+`feature/x → dev` approuvée par `connarddu16-design`. Le cas « CI rouge » du
+garde n'a jamais pu être vérifié en réel — les 17 exécutions de `ci.yml` de
+l'historique sont toutes vertes.
