@@ -289,6 +289,10 @@ sur le résultat fusionné : 68 passed, 4 xfailed, ruff clean). **Poussée vers
 GitHub** (`origin/dev`, 2026-09-22) : le dépôt distant `wawawaformation/mardik-api-mlops`
 n'avait jusque-là que `main` (squelette de départ, `protected: false`).
 
+> **Mise à jour 2026-09-23** : le compte de revue et les 4 secrets Azure
+> sont désormais en place — voir la section « Prérequis GitHub » en bas de
+> ce fichier. Le paragraphe ci-dessous décrit l'état d'alors.
+
 **La chaîne reste non exercée de bout en bout en conditions réelles** : les
 prérequis hors code restent à faire par l'utilisateur avant le premier vrai
 run — compte `mardik-relecteur` (inscription manuelle : `gh` ne peut pas
@@ -484,3 +488,24 @@ hypothèse, plutôt que de deviner à partir du symptôme rapporté.
   clair.
 - L'utilisateur est développeur PHP confirmé, étudiant en dev IA agentique —
   pédagogie bienvenue.
+
+## Prérequis GitHub — état au 2026-09-23 (fin de journée)
+
+| Prérequis | État |
+|---|---|
+| Compte de revue dédié | ✅ `connarddu16-design`, collaborateur `write` |
+| `revue.yml` pointé sur ce login | ✅ (gardait `mardik-relecteur`, jamais enregistré) |
+| Secrets Azure (4) | ✅ poussés via `gh secret set` depuis `.env` |
+| Secret `CI_TAG_TOKEN` | ⬜ **bloquant** — PAT à générer depuis le compte de revue |
+| Protections tags / branche `main` | ⬜ reportées (choix de l'utilisateur) |
+
+Le vrai nom du compte de revue est **`connarddu16-design`**, pas
+`mardik-relecteur` : ce dernier était un nom de travail de la conception,
+jamais enregistré sur GitHub. Le garde de `revue.yml` le comparait
+pourtant en dur — il n'aurait jamais matché, donc `revue-ok` jamais posé,
+donc fusion vers `main` refusée sans message clair. Corrigé.
+
+`AZURE_AI_API_VERSION` est poussée à `2024-05-01-preview` mais n'a aucun
+effet : `ops/drift_proxy.py` [FOURNI] l'ajoute à l'URL amont,
+`ops/azure_adapter.py` la retire, l'API `/openai/v1` la rejette. Elle
+n'est donc pas dans `.env` en local, et c'est normal.

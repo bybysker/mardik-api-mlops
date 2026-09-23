@@ -43,14 +43,24 @@
       Détail complet dans `MEMORY.md`.
 - [x] Branche `dev` poussée vers GitHub (`origin/dev`) — le dépôt distant
       n'avait que `main` (squelette de départ) jusque-là.
-- [ ] **Prérequis GitHub restants, hors code, avant un premier run réel** :
-      compte `mardik-relecteur` (inscription manuelle, pas automatisable via
-      `gh`), secret `CI_TAG_TOKEN` (PAT à générer depuis ce compte), secrets
-      Azure (`AZURE_LLM_MODEL`, `AZURE_AI_ENDPOINT`, `AZURE_AI_API_KEY`,
-      `AZURE_AI_API_VERSION`), protection des tags `revue-ok/*`/`eval-ok/*`/`v*`
-      (faisable via `gh api`, pas encore fait — décision explicite de
-      reporter), protection de branche `main` (`main` n'a aucune protection
-      active actuellement, `protected: false`). Voir `MEMORY.md`.
+- [x] **Compte de revue en place (2026-09-23)** : `connarddu16-design`
+      (et non `mardik-relecteur`, nom de travail de la conception jamais
+      enregistré), collaborateur `write` sur le dépôt. `revue.yml` pointé
+      sur ce login — sans ça le garde n'aurait jamais matché et
+      `revue-ok` n'aurait jamais été posé.
+- [x] **Secrets Azure poussés (2026-09-23)** : `AZURE_LLM_MODEL`,
+      `AZURE_AI_ENDPOINT`, `AZURE_AI_API_KEY` (depuis `.env`) et
+      `AZURE_AI_API_VERSION` (valeur documentée `2024-05-01-preview` —
+      sans effet réel : `drift_proxy` l'ajoute à l'URL, `azure_adapter`
+      la retire, l'API `/openai/v1` n'en veut pas).
+- [ ] **Secret `CI_TAG_TOKEN`** : PAT à générer **depuis le compte de
+      revue** (`connarddu16-design`) — action manuelle, une session de ce
+      compte est nécessaire. C'est le dernier prérequis bloquant pour un
+      premier run réel.
+- [ ] **Protections de tags et de branche** (`revue-ok/*`, `eval-ok/*`,
+      `v*`, `main` en linear history) — reportées à la demande de
+      l'utilisateur (2026-09-23). Filet supplémentaire : `cd-main.yml`
+      vérifie déjà lui-même la présence des deux tags.
 - [x] **Tranché (2026-09-22)** : `CANARY_PERCENT` et `MOCK` restent des
       valeurs par défaut statiques dans `.env`. Le pilotage dynamique du
       pourcentage canary relève du chantier 2 (registre/serveur de

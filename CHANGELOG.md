@@ -2,6 +2,31 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (prérequis GitHub : compte de revue et secrets Azure en place)
+
+- **Compte de revue dédié opérationnel** : `connarddu16-design`, ajouté
+  comme collaborateur `write`. (Le 404 rencontré le matin même venait d'un
+  compte pas encore validé, pas d'une erreur de login.)
+- **Blocage silencieux corrigé** : `revue.yml` gardait
+  `review.user.login == 'mardik-relecteur'`, un nom de travail issu de la
+  conception qui n'a jamais été enregistré sur GitHub. Le garde n'aurait
+  jamais matché : le tag `revue-ok` n'aurait jamais été posé, et la fusion
+  vers `main` aurait été refusée sans explication évidente. Pointé sur le
+  vrai login. `docs/exploitation.md` §3 mis à jour, en précisant pourquoi
+  ce second compte est nécessaire (GitHub interdit d'approuver sa propre
+  PR). Schéma `chaine-llmops-deux-tags_reel` repassé à un libellé
+  générique pour ne plus dépendre d'un login, PNG régénéré.
+- **4 secrets Azure poussés** (`gh secret set` depuis `.env`) :
+  `AZURE_LLM_MODEL`, `AZURE_AI_ENDPOINT`, `AZURE_AI_API_KEY`, plus
+  `AZURE_AI_API_VERSION` à la valeur documentée `2024-05-01-preview` —
+  absente de `.env` car sans effet réel (`ops/drift_proxy.py` [FOURNI]
+  l'ajoute à l'URL, `ops/azure_adapter.py` la retire, l'API `/openai/v1`
+  la rejette).
+- **Reste bloquant pour un premier run réel** : le secret `CI_TAG_TOKEN`,
+  un PAT à générer depuis le compte de revue — nécessite une session de ce
+  compte, non automatisable. Protections de tags/branche reportées à la
+  demande de l'utilisateur.
+
 ## 2026-09-23 (démo : montrer la troncature v1 en direct)
 
 - **Faiblesse de narration corrigée** : la requête 1 envoyait `c01.txt`
