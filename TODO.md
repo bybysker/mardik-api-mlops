@@ -145,7 +145,14 @@
       n'est plus xfail — plus aucun test xfail dans
       `tests/acceptance/test_observabilite.py` (93 passed sur la suite
       complète).
-- [ ] `docs/exploitation.md` — gabarit fourni à compléter (7 sections)
+- [x] `docs/exploitation.md` complété (2026-09-23), 7 sections : version/
+      fingerprint, étiquetage SemVer + manifest.json, chaîne de livraison
+      (4 workflows), déploiement progressif (critère v2≥v1), rollback,
+      surveillance/seuils (+ limite : règles ajustables pas encore
+      bouclées sur `surveiller()`, boucle périodique non implémentée),
+      preuve d'exécution (transcript réel capturé au niveau `ops.deploy`,
+      pas de démo HTTP bout en bout complète — nécessite Docker + un vrai
+      modèle, commande fournie pour que l'utilisateur la rejoue).
 
 ## Environnement
 

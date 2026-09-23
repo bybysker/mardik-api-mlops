@@ -391,6 +391,18 @@ branche).
   JS, formes JSON réelles de l'API conformes à ce que `app.js` consomme,
   en-tête CORS présent, 6 fichiers statiques en 200 — **pas de rendu visuel
   confirmé**. Chantier 2 : reste `docs/exploitation.md`.
+- **`docs/exploitation.md` complété** (2026-09-23), les 7 sections du
+  gabarit. Point notable, section 7 (preuve d'exécution) : transcript
+  **réel**, exécuté en direct (`ops.deploy.deployer_canary` → trafic sain →
+  dérive de score simulée → `surveiller()` détecte et déclenche
+  `rollback()` → trace au journal), pas un exemple fabriqué — mais limité
+  au mécanisme de décision `ops.deploy` (`MOCK=on`, sans Docker) : la démo
+  HTTP bout en bout via la gateway + le vrai proxy de dérive
+  (`scripts/traffic_sim.py`, `make traffic`) n'a pas été exécutée ici
+  (nécessite `MOCK=off` pour que `DRIFT=` ait un effet — le client LLM
+  court-circuite le proxy en `MOCK=on` — donc Ollama ou Azure réel, coût
+  réel), commande fournie pour que l'utilisateur la rejoue. **Les 6 points
+  du chantier 2 (`TODO.md`) sont maintenant tous cochés.**
 
 ## Environnement technique
 

@@ -2,6 +2,34 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (`docs/exploitation.md` complété — dernier point du chantier 2)
+
+- **Les 7 sections du gabarit rédigées** : qu'est-ce qu'une version
+  (bundle = code + modèle + config + prompt + provider, fingerprint
+  `Bundle.empreinte()`), schéma d'étiquetage (SemVer, `manifest.json`),
+  chaîne de livraison (les 4 workflows `ci`/`revue`/`gate`/`cd-main` et ce
+  que chacun vérifie), déploiement progressif (critère `v2 ≥ v1` de
+  `ops/serveur_pilotage.py::_evaluer_criteres_promotion`), procédure de
+  rollback (commande, effet, vérification, trace journal), surveillance et
+  seuils (tableau signal/seuil/justification, fenêtre temporelle, limite
+  documentée : les seuils ajustables via `PUT /pilotage/regles` ne sont pas
+  encore bouclés sur `ops.deploy.surveiller`, et aucune tâche périodique
+  n'appelle `surveiller()` toute seule).
+- **Preuve d'exécution (section 7) : transcript réel capturé**, pas
+  fabriqué — `ops.deploy.deployer_canary` → trafic sain (pas de dérive) →
+  dérive de score simulée → `ops.deploy.surveiller` détecte, déclenche
+  `ops.deploy.rollback`, trace au journal (motif, avant/après). Exécuté en
+  direct (`MOCK=on`, registre/métriques isolés dans un répertoire
+  temporaire), commande et sortie incluses telles quelles dans le document.
+  Limite assumée et documentée : ce transcript démontre le mécanisme de
+  décision au niveau `ops.deploy`, pas le trafic HTTP bout en bout via la
+  gateway ni le proxy de dérive (`DRIFT=`, sans effet en `MOCK=on` — le
+  client LLM le court-circuite) — la commande pour rejouer la démo
+  complète (`make up` puis `make traffic MODE=derive-score`) est fournie
+  pour qui a l'environnement Docker + un vrai modèle.
+- Chantier 2 : les 6 points de `TODO.md` sont maintenant cochés. Suite
+  Python inchangée (aucun code touché) : 100 passed, ruff clean.
+
 ## 2026-09-23 (chantier 2 : client web de pilotage câblé)
 
 - **`client_web/` (nouveau)** : les 4 pages de la maquette figée
