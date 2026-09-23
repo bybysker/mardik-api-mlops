@@ -31,20 +31,23 @@ Règles :
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import APIRouter, Depends, HTTPException
+from opentelemetry import context as otel_context
 from pydantic import BaseModel, Field
 
-from app.llm_client import Bundle, ErreurLLM, LLMClient
+from app.llm_client import Bundle, ErreurLLM, LLMClient, ReponseLLM
 from app.pipeline.confiance import Clause, scorer
 from app.pipeline.consolidation import consolider
-from app.pipeline.decoupage import decouper
+from app.pipeline.decoupage import Section, decouper
 from app.pipeline.extraction import extraire
 from app.telemetry import Mesure, Telemetry, build_default_telemetry
 
 router = APIRouter(prefix="/v2", tags=["v2"])
 VERSION_V2 = "v2"
 LIMITE_CARACTERES = 250_000
+MAX_APPELS_LLM_PARALLELES = 8
 
 
 class DocumentTropLong(ValueError):
@@ -90,6 +93,24 @@ def get_telemetry() -> Telemetry:
     return build_default_telemetry()
 
 
+def _extraire_avec_span(
+    section: Section, client: LLMClient, telemetry: Telemetry, parent_ctx: otel_context.Context
+) -> tuple[list[Clause], ReponseLLM]:
+    """Exécute ``extraire`` dans un thread du pool en rattachant le span
+    ``llm.appel`` au span parent ``analyse.requete`` (le contexte OpenTelemetry
+    ne traverse pas les threads tout seul)."""
+    token = otel_context.attach(parent_ctx)
+    try:
+        with telemetry.tracer.start_as_current_span("llm.appel") as span_llm:
+            clauses, reponse = extraire(section, client)
+            span_llm.set_attribute("llm.latence_ms", reponse.latence_ms)
+            span_llm.set_attribute("llm.tokens", reponse.tokens)
+            span_llm.set_attribute("llm.clauses", len(clauses))
+        return clauses, reponse
+    finally:
+        otel_context.detach(token)
+
+
 def analyser_v2(texte: str, client: LLMClient, telemetry: Telemetry) -> ReponseAnalyseV2:
     bundle = client.bundle
     if len(texte) > LIMITE_CARACTERES:
@@ -104,21 +125,16 @@ def analyser_v2(texte: str, client: LLMClient, telemetry: Telemetry) -> ReponseA
         sections = decouper(texte, taille_max)
         span.set_attribute("mardik.sections", len(sections))
 
-        par_section: list[list[Clause]] = []
-        appels_llm = 0
-        tokens_total = 0
-        cout_total = 0.0
         try:
-            for section in sections:
-                with telemetry.tracer.start_as_current_span("llm.appel") as span_llm:
-                    clauses, reponse = extraire(section, client)
-                    span_llm.set_attribute("llm.latence_ms", reponse.latence_ms)
-                    span_llm.set_attribute("llm.tokens", reponse.tokens)
-                    span_llm.set_attribute("llm.clauses", len(clauses))
-                par_section.append(clauses)
-                appels_llm += 1
-                tokens_total += reponse.tokens
-                cout_total += client.cout_eur(reponse)
+            parent_ctx = otel_context.get_current()
+            nb_ouvriers = max(1, min(len(sections), MAX_APPELS_LLM_PARALLELES))
+            with ThreadPoolExecutor(max_workers=nb_ouvriers) as executor:
+                resultats = list(
+                    executor.map(
+                        lambda section: _extraire_avec_span(section, client, telemetry, parent_ctx),
+                        sections,
+                    )
+                )
         except ErreurLLM as exc:
             telemetry.metriques.enregistrer(
                 Mesure(
@@ -131,6 +147,11 @@ def analyser_v2(texte: str, client: LLMClient, telemetry: Telemetry) -> ReponseA
             )
             telemetry.logger.error("analyse.echec", version=bundle.version, cause=str(exc))
             raise
+
+        par_section = [clauses for clauses, _ in resultats]
+        appels_llm = len(resultats)
+        tokens_total = sum(reponse.tokens for _, reponse in resultats)
+        cout_total = sum(client.cout_eur(reponse) for _, reponse in resultats)
 
         clauses_consolidees = consolider(par_section)
         clauses_notees, confiance_globale = scorer(clauses_consolidees, len(sections), texte)

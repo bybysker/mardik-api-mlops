@@ -2,6 +2,21 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (parallélisation des appels LLM du pipeline v2)
+
+- **`app/api_v2.py::analyser_v2` : appels LLM par section parallélisés**
+  (`ThreadPoolExecutor`, `MAX_APPELS_LLM_PARALLELES = 8`) au lieu d'une
+  boucle `for` séquentielle. Corrige le risque de latence P95 identifié le
+  2026-09-21 (jusqu'à 20 appels séquentiels pour le contrat le plus long,
+  invisible en `MOCK` mais probablement bloquant contre le vrai modèle au
+  gate). `executor.map` préserve l'ordre des sections (`par_section`), dont
+  dépend `consolidation.py::consolider` (ordre d'apparition dans le
+  contrat). Nouvelle fonction `_extraire_avec_span` : le contexte
+  OpenTelemetry ne traverse pas les threads tout seul, donc chaque thread
+  réattache explicitement le contexte du span parent (`analyse.requete`)
+  avant d'ouvrir son span `llm.appel` — vérifié manuellement (span enfants
+  bien rattachés au parent). Tests inchangés : 68 passed, 4 xfailed.
+
 ## 2026-09-22 (branche `dev` poussée sur GitHub + 3 schémas chantier 1)
 
 - **`dev` poussée vers GitHub** (`origin/dev`) : le dépôt distant

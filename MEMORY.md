@@ -160,19 +160,14 @@ avec le code réel, pas seulement la cible) :
 
 ### Points connus, non corrigés ici, hors périmètre de ce plan
 
-- **Risque de latence P95 pour le gate d'éval (chantier 1 point 3)** : les
-  appels LLM par section dans `app/api_v2.py::analyser_v2` sont strictement
-  séquentiels (une boucle `for`, pas de parallélisation). Mesuré sur le
-  corpus réel : jusqu'à 20 appels séquentiels pour le contrat le plus long
-  (c12). Invisible en mode `MOCK` (~0,2 ms/appel), donc aucun test ne le
-  détecte — mais le gate d'évaluation tournera contre un vrai modèle et
-  vérifie `latence_p95_ms < 8000`, contrainte que ce comportement va très
-  probablement violer. La marge de coût mesurée est confortable (0,054 €
-  contre 0,15 € de budget pour c12), donc paralléliser (par ex. un
-  `ThreadPoolExecutor` sur les sections, en préservant l'ordre de
-  `par_section` et le rattachement du span `llm.appel` par section) est le
-  correctif naturel pour qui reprendra le chantier 1 point 3 — non fait ici,
-  hors périmètre de ce plan.
+- **Risque de latence P95 pour le gate d'éval (chantier 1 point 3)** —
+  **corrigé le 2026-09-23** : les appels LLM par section dans
+  `app/api_v2.py::analyser_v2` sont désormais parallélisés
+  (`ThreadPoolExecutor`, `MAX_APPELS_LLM_PARALLELES = 8`), voir `CHANGELOG.md`
+  (2026-09-23). Mesuré sur le corpus réel avant correctif : jusqu'à 20
+  appels séquentiels pour le contrat le plus long (c12), invisible en mode
+  `MOCK` (~0,2 ms/appel) donc aucun test ne le détectait, mais probablement
+  bloquant contre le vrai modèle au gate (`latence_p95_ms < 8000`).
 - **Note de calibration découpage/corroboration pour le chantier 2** : le
   chevauchement (~250 car.) du repli taille fixe peut faire compter une
   clause à cheval sur deux chunks adjacents comme corroborée par la
