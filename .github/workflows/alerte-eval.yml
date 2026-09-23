@@ -1,0 +1,97 @@
+name: Alerte évaluation (lot A)
+
+# I6 — signal, pas preuve. Un push sur une branche de travail qui touche un
+# chemin capable de déplacer la note joue l'évaluation réelle (payante) et
+# l'affiche. Aucun tag n'est posé : la seule évaluation qui fait foi reste
+# celle du lot C, après la revue (gate.yml). Si celle-ci posait eval-ok, on
+# obtiendrait la preuve sans passer par la revue et l'ordre revue -> gate
+# s'effondrerait (intents.md, I2 et I6). Ce fichier ne reçoit donc aucun
+# jeton d'écriture et n'écrit rien dans le dépôt : `permissions: contents:
+# read` seulement, et le checkout se fait sans `token:`. Voir
+# docs/superpowers/specs/2026-09-23-chaine-llmops-intents.md.
+#
+# Fichier séparé et non un job de ci.yml : les filtres `paths:` d'Actions
+# s'appliquent au workflow entier, pas à un job — les mettre dans ci.yml
+# filtrerait aussi le lint et les tests mockés.
+#
+# Conséquence assumée : sur ces quatre chemins, le lot A cesse d'être
+# gratuit (12 contrats d'évaluation réelle).
+
+on:
+  push:
+    branches:
+      - "feature/**"
+    paths:
+      - "models/*/config.yaml"
+      - "app/pipeline/**"
+      - "app/llm_client.py"
+      - "eval/**"
+
+permissions:
+  contents: read
+
+jobs:
+  alerte-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Écrire le .env pour le fournisseur Azure réel
+        run: |
+          cat > .env <<ENVEOF
+          LLM_PROVIDER=azure
+          LLM_MODEL=${{ secrets.AZURE_LLM_MODEL }}
+          AZURE_AI_ENDPOINT=${{ secrets.AZURE_AI_ENDPOINT }}
+          AZURE_AI_API_KEY=${{ secrets.AZURE_AI_API_KEY }}
+          AZURE_AI_API_VERSION=${{ secrets.AZURE_AI_API_VERSION }}
+          LLM_PROXY_URL=http://localhost:8080
+          DRIFT=off
+          MOCK=off
+          CANARY_PERCENT=10
+          ENVEOF
+
+      - name: Démarrer le proxy de dérive et l'adaptateur Azure
+        run: docker compose up -d --build proxy azure-adapter
+
+      - name: Attendre que le proxy soit prêt
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8080/_drift && exit 0
+            sleep 1
+          done
+          echo "le proxy n'a pas démarré à temps :"
+          docker compose logs proxy azure-adapter
+          exit 1
+
+      - name: Installer uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installer les dépendances
+        run: uv sync
+
+      - name: Évaluation réelle (signal, aucun tag)
+        shell: bash
+        # shell: bash force -eo pipefail ; sans lui, le `tee` avalerait le
+        # code de retour non nul de run_eval et le job passerait au vert.
+        env:
+          LLM_PROVIDER: azure
+          LLM_PROXY_URL: http://localhost:8080
+          MOCK: "off"
+        run: uv run python -m eval.run_eval --version v2 --seuil 0.75 | tee /tmp/eval.txt
+
+      - name: Résumé lisible dans l'onglet Summary
+        if: always()
+        run: |
+          {
+            echo "## Alerte évaluation — signal, pas preuve"
+            echo
+            echo "Push touchant un chemin sensible à la note. **Aucun tag posé.**"
+            echo "La preuve d'évaluation reste celle du lot C (\`gate.yml\`)."
+            echo
+            echo '```'
+            cat /tmp/eval.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
