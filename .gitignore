@@ -28,11 +28,6 @@ uv.lock
 # Worktrees isolés pour l'exécution de plans (superpowers:using-git-worktrees)
 .worktrees/
 
-# Client Bruno (fichiers de requêtes locales, non versionnés) — sauf la
-# collection de démo (bruno/mardik-demo-cto/), partagée intentionnellement.
-bruno/*
-!bruno/mardik-demo-cto/
-
 # Généré à l'exécution
 eval/history.jsonl
 eval/.metrics_eval.jsonl

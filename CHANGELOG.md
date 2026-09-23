@@ -2,6 +2,31 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (collection Bruno fournie restaurée)
+
+- **Régression corrigée** : la collection Bruno livrée avec le squelette du
+  brief (`bruno/` = collection « Mardik API », 8 requêtes dans
+  `gateway/`, `proxy-derive/`, `sante/`, `v1/`, `v2/`) avait été retirée du
+  suivi git le 2026-09-22, considérée à tort comme des « requêtes locales
+  personnelles ». C'est du matériel fourni : restauré, et les règles
+  `bruno/` du `.gitignore` supprimées — toute la collection est de nouveau
+  versionnée. Repéré en préparant la PR `dev → main`, qui aurait sinon
+  supprimé ces 8 fichiers de `main`.
+- **Structure remise à plat** : `bruno/mardik-demo-cto/` avait son propre
+  `bruno.json`, donc une collection imbriquée dans une autre. Le fichier a
+  été retiré : le dossier de démo est désormais un simple dossier de la
+  collection « Mardik API ». Une seule collection à ouvrir dans Bruno.
+- **Idée reprise de la requête fournie** : `v1/analyse-contrat-long-troncature.bru`
+  place délibérément les clauses *résiliation* et *droit applicable* après
+  65 articles de remplissage, de sorte que la troncature v1 les fait
+  **disparaître** de la réponse — nettement plus démonstratif qu'un
+  `tronque: true`. Signalé comme variante à l'étape 2 de
+  `docs/demo-v1-v2-pilotage.md`. (Ces fichiers fournis indentaient
+  correctement leur `body:json`, la convention redécouverte à mes dépens
+  le matin même.)
+- Les 18 fichiers `.bru` de la collection revalidés avec le parseur de
+  Bruno.
+
 ## 2026-09-23 (prérequis GitHub : compte de revue et secrets Azure en place)
 
 - **Compte de revue dédié opérationnel** : `connarddu16-design`, ajouté

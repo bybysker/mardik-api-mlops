@@ -53,6 +53,13 @@ de ~64 000 caractères.
 **Montrer** : **`tronque: true`**. Et pourtant, la liste de `clauses` a
 l'air parfaitement normale.
 
+**Variante encore plus parlante** — la requête fournie avec le squelette,
+`bruno/v1/analyse-contrat-long-troncature.bru` : son texte place
+délibérément les clauses **résiliation** et **droit applicable** tout à la
+fin, après 65 articles de remplissage. La troncature les fait donc
+littéralement **disparaître** de la réponse. On ne montre plus un booléen,
+on montre des clauses qui s'évaporent.
+
 **Dire** : « v1 a coupé le contrat à 16 000 caractères *avant même*
 d'appeler le LLM — les trois quarts du document n'ont jamais été analysés.
 Le juriste qui lit cette réponse voit une liste de clauses crédible, sans
