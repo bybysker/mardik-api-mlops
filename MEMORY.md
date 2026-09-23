@@ -310,6 +310,29 @@ règles de protection de branche plus strictes que prévu bloquent les pushs
 de bots sur `main` (point relevé, non testé, lors de la revue finale de
 branche).
 
+## Chantier 2 (Observabilité) — démarré (2026-09-23)
+
+- **Parallélisation des appels LLM v2** (préalable, hors chantier 2 à
+  proprement parler mais fait le même jour) : `app/api_v2.py::analyser_v2`
+  résout le risque de latence P95 noté le 2026-09-21 — voir `CHANGELOG.md`.
+- **`ops/dashboard.py::resume/rendre_texte/rendre_html` implémentés**
+  (TDD, `tests/unit/test_dashboard.py`). Fenêtre temporelle, agrégats par
+  version (trafic, p50/p95, taux d'erreur, score moyen, coût total),
+  erreurs exclues des latences/scores. `test_dashboard_par_version`
+  (acceptance) n'est plus `xfail`.
+- **Fusion des journaux v1/v2** : `resume()` sans `metriques` explicite lit
+  désormais `METRICS_PATH` (v1) **et** une nouvelle variable
+  `METRICS_PATH_V2` (défaut `ops/metrics_v2.jsonl`), sinon le trafic du
+  container `v2` (journal séparé, voir topologie plus haut) serait invisible
+  du tableau de bord. `docker-compose.yml` (service `dashboard`) reçoit
+  `METRICS_PATH_V2`. **`ops/deploy.py::surveiller` a le même besoin, pas
+  encore traité** (reste `[STUB]`) — même mécanisme (`_stores_par_defaut`,
+  `ops/dashboard.py`) réutilisable quand `surveiller()` sera écrit.
+- Suite : 76 passed, 3 xfailed (restants : `test_promotion_canary_puis_totale`,
+  `test_rollback_en_une_operation` — dépendent de `app/gateway.py` ;
+  `test_journal_derive_et_rollback_automatique` — dépend de
+  `ops/deploy.py::surveiller`).
+
 ## Environnement technique
 
 - Dépôt git propre à `mardik-api-mlops`, remote `origin` =

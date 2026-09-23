@@ -27,11 +27,33 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from typing import Any
 
-from app.telemetry import MetricsStore
+from app.telemetry import CHEMIN_METRIQUES_DEFAUT, Mesure, MetricsStore
 from ops.registry import Registry
+
+CHEMIN_METRIQUES_V2_DEFAUT = CHEMIN_METRIQUES_DEFAUT.parent / "metrics_v2.jsonl"
+
+
+def _stores_par_defaut() -> list[MetricsStore]:
+    """Sans ``metriques`` explicite : fusionne le journal v1 (``METRICS_PATH``,
+    par défaut ``ops/metrics.jsonl``) et le journal v2 (``METRICS_PATH_V2``,
+    par défaut ``ops/metrics_v2.jsonl``) — sinon le trafic du container ``v2``
+    (journal séparé, voir ``docker-compose.yml``) resterait invisible."""
+    chemin_v2 = os.environ.get("METRICS_PATH_V2", CHEMIN_METRIQUES_V2_DEFAUT)
+    return [MetricsStore(), MetricsStore(chemin_v2)]
+
+
+def _percentile(valeurs: list[float], p: float) -> float:
+    if not valeurs:
+        return 0.0
+    k = (len(valeurs) - 1) * p / 100
+    f, c = int(k), min(int(k) + 1, len(valeurs) - 1)
+    if f == c:
+        return round(valeurs[f], 1)
+    return round(valeurs[f] + (valeurs[c] - valeurs[f]) * (k - f), 1)
 
 
 def resume(
@@ -40,15 +62,99 @@ def resume(
     fenetre_s: float = 300,
     registry: Registry | None = None,
 ) -> dict[str, Any]:
-    raise NotImplementedError("dashboard.resume — agrégats par version sur la fenêtre")
+    stores = [metriques] if metriques is not None else _stores_par_defaut()
+    mesures: list[Mesure] = [m for store in stores for m in store.lire(depuis_s=fenetre_s)]
+    registry = registry or Registry()
+
+    total = len(mesures)
+    par_version: dict[str, dict[str, Any]] = {}
+    ordre: list[str] = []
+    groupes: dict[str, list[Mesure]] = {}
+    for m in mesures:
+        groupes.setdefault(m.version, []).append(m)
+        if m.version not in ordre:
+            ordre.append(m.version)
+
+    for version in ordre:
+        ms = groupes[version]
+        requetes = len(ms)
+        sans_erreur = [m for m in ms if not m.erreur]
+        latences = sorted(m.latence_ms for m in sans_erreur)
+        scores = [m.score for m in sans_erreur if m.score is not None]
+        par_version[version] = {
+            "requetes": requetes,
+            "trafic_pct": round(requetes / total * 100, 1) if total else 0.0,
+            "latence_p50_ms": _percentile(latences, 50),
+            "latence_p95_ms": _percentile(latences, 95),
+            "taux_erreur": round(sum(1 for m in ms if m.erreur) / requetes, 4) if requetes else 0.0,
+            "score_moyen": round(sum(scores) / len(scores), 3) if scores else None,
+            "cout_total_eur": round(sum(m.cout_eur for m in sans_erreur), 6),
+        }
+
+    return {
+        "fenetre_s": fenetre_s,
+        "total": total,
+        "par_version": par_version,
+        "journal": registry.journal()[-5:],
+    }
 
 
 def rendre_texte(r: dict[str, Any]) -> str:
-    raise NotImplementedError("dashboard.rendre_texte — rendu texte du résumé")
+    lignes = [f"Tableau de bord Mardik — fenêtre {r['fenetre_s']:.0f} s, {r['total']} requêtes"]
+    for version, v in r["par_version"].items():
+        lignes.append(
+            f"  {version} : {v['requetes']} req ({v['trafic_pct']}%), "
+            f"latence p50={v['latence_p50_ms']}ms p95={v['latence_p95_ms']}ms, "
+            f"erreurs={v['taux_erreur']:.1%}, "
+            f"score={v['score_moyen'] if v['score_moyen'] is not None else 'n/a'}, "
+            f"coût={v['cout_total_eur']}€"
+        )
+    if not r["par_version"]:
+        lignes.append("  aucun trafic sur cette fenêtre")
+    if r["journal"]:
+        lignes.append("Derniers événements :")
+        for e in r["journal"]:
+            lignes.append(f"  {e.get('date', '?')} — {e.get('evenement', '?')}")
+    return "\n".join(lignes)
 
 
 def rendre_html(r: dict[str, Any]) -> str:
-    raise NotImplementedError("dashboard.rendre_html — page HTML auto-rafraîchie")
+    lignes_versions = "".join(
+        f"<tr><td>{version}</td><td>{v['requetes']}</td><td>{v['trafic_pct']}%</td>"
+        f"<td>{v['latence_p50_ms']}</td><td>{v['latence_p95_ms']}</td>"
+        f"<td>{v['taux_erreur']:.1%}</td>"
+        f"<td>{v['score_moyen'] if v['score_moyen'] is not None else '—'}</td>"
+        f"<td>{v['cout_total_eur']}</td></tr>"
+        for version, v in r["par_version"].items()
+    )
+    lignes_journal = "".join(
+        f"<li>{e.get('date', '?')} — {e.get('evenement', '?')}</li>" for e in r["journal"]
+    )
+    return f"""<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="refresh" content="5">
+<title>Tableau de bord Mardik</title>
+<style>
+  body {{ font-family: system-ui, sans-serif; margin: 2rem; }}
+  table {{ border-collapse: collapse; width: 100%; }}
+  th, td {{ border: 1px solid #ccc; padding: 0.4rem 0.8rem; text-align: right; }}
+  th:first-child, td:first-child {{ text-align: left; }}
+</style>
+</head>
+<body>
+<h1>Tableau de bord Mardik</h1>
+<p>Fenêtre : {r['fenetre_s']:.0f} s — {r['total']} requêtes</p>
+<table>
+<thead><tr><th>Version</th><th>Requêtes</th><th>Trafic</th><th>P50 (ms)</th>
+<th>P95 (ms)</th><th>Erreurs</th><th>Score moyen</th><th>Coût (€)</th></tr></thead>
+<tbody>{lignes_versions}</tbody>
+</table>
+<h2>Journal</h2>
+<ul>{lignes_journal}</ul>
+</body>
+</html>"""
 
 
 def main(argv: list[str] | None = None) -> int:

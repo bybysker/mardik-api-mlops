@@ -2,6 +2,25 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (chantier 2 : `ops/dashboard.py` implémenté)
+
+- **`ops/dashboard.py::resume/rendre_texte/rendre_html` implémentés**
+  (premier point du chantier 2, TDD : `tests/unit/test_dashboard.py` écrits
+  rouges avant l'implémentation). Fenêtre **temporelle** (`fenetre_s`),
+  agrégats par version (trafic, latence p50/p95, taux d'erreur, score moyen,
+  coût total), erreurs exclues des latences/scores comme documenté.
+- **Fusion v1/v2 sans store explicite** : `resume()` sans `metriques` lit
+  désormais à la fois `METRICS_PATH` (v1) et une nouvelle variable
+  `METRICS_PATH_V2` (défaut `ops/metrics_v2.jsonl`), pour ne pas laisser le
+  trafic du container `v2` invisible du tableau de bord — condition posée
+  dans `MEMORY.md`/`TODO.md`. `docker-compose.yml` (service `dashboard`)
+  reçoit `METRICS_PATH_V2`. `ops/deploy.py::surveiller` a le même besoin,
+  pas encore traité (reste `[STUB]`).
+- **`test_dashboard_par_version`** (`tests/acceptance/test_observabilite.py`)
+  n'est plus `xfail` : il ne dépendait ni de `gateway.py` ni de
+  `surveiller()`, seulement de `dashboard.resume()`. Suite : 76 passed,
+  3 xfailed (restants : gateway/canary, rollback, dérive+surveiller).
+
 ## 2026-09-23 (parallélisation des appels LLM du pipeline v2)
 
 - **`app/api_v2.py::analyser_v2` : appels LLM par section parallélisés**

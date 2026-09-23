@@ -70,7 +70,7 @@ services:
     environment:
       AZURE_AI_REAL_ENDPOINT: ${AZURE_AI_ENDPOINT}
 
-  # Le tableau de bord (à implémenter : ops/dashboard.py).
+  # Le tableau de bord (ops/dashboard.py) : fusionne les journaux v1 et v2.
   dashboard:
     build: .
     command: python -m ops.dashboard --serve --port 8501
@@ -79,6 +79,7 @@ services:
     env_file: .env
     environment:
       METRICS_PATH: /app/ops/metrics.jsonl
+      METRICS_PATH_V2: /app/ops/metrics_v2.jsonl
       REGISTRY_PATH: /app/ops/registry
     volumes:
       - ./ops:/app/ops

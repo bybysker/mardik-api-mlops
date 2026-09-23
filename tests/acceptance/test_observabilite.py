@@ -97,7 +97,6 @@ def test_evaluation_enrichie_latence_et_cout(historique):
     assert {"version", "note", "latence_p95_ms", "cout_moyen_eur", "passe", "par_contrat"} <= set(d)
 
 
-@pytest.mark.xfail(reason=_HORS_PERIMETRE, strict=False)
 def test_dashboard_par_version(metriques, registry):
     """Étant donné du trafic servi par la v1 et la v2, quand on consulte le tableau de
     bord, alors il présente, par version : le trafic, la latence (P50/P95), le taux

@@ -109,10 +109,16 @@
       fonction en interne plutôt que de recalculer l'agrégation. Le service
       `dashboard` (8501, `--serve`) reste une vue texte/HTML autonome héritée
       de la remédiation, en plus de la route JSON contractuelle.
-- [ ] Faire lire `ops/metrics_v2.jsonl` (service `v2`) par `ops/dashboard.py`
-      et `ops/deploy.py::surveiller`, qui ne connaissent que
-      `ops/metrics.jsonl` — condition pour que le trafic du container `v2`
-      soit visible dans la surveillance
+- [x] `ops/dashboard.py::resume/rendre_texte/rendre_html` implémentés
+      (2026-09-23), fenêtre **temporelle** (`fenetre_s`, voir
+      `docs/conception_revue/pilotage/fenetre-glissante-seuils.md`). Sans
+      `metriques` explicite, `resume()` fusionne `METRICS_PATH` (v1) et
+      `METRICS_PATH_V2` (v2, nouvelle variable, `docker-compose.yml` service
+      `dashboard`) — condition pour que le trafic du container `v2` ne soit
+      pas invisible du tableau de bord.
+- [ ] Faire lire `ops/metrics_v2.jsonl` par `ops/deploy.py::surveiller`
+      (même besoin que `ops/dashboard.py`, déjà traité — condition pour que
+      le trafic du container `v2` soit visible dans la surveillance)
 - [ ] `app/gateway.py::choisir_version/etat/analyse` — routage canary
 - [ ] `docs/exploitation.md` — gabarit fourni à compléter (7 sections)
 
