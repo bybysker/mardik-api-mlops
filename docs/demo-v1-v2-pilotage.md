@@ -19,6 +19,16 @@ Dans Bruno : ouvrir la collection `bruno/mardik-demo-cto/`. Ouvrir aussi
 `http://localhost:8503` (client web de pilotage) dans un onglet à côté —
 certaines étapes s'y regardent plutôt que dans Bruno.
 
+**Vérifier l'état de départ** (sinon la démo raconte n'importe quoi) :
+
+```bash
+cat ops/registry/index.json   # attendu : active v1.0.0, canary null
+```
+
+Si `canary` n'est pas `null` ou si `active` n'est pas `v1.0.0`, c'est
+qu'une démo précédente a laissé des traces : `uv run python -m ops.deploy
+rollback --motif "remise à zéro démo"` puis revérifier.
+
 ---
 
 ## 1. v1 — le contrat historique, intouchable
@@ -163,6 +173,11 @@ trafic repasse sur la version saine, sans redémarrage.
 **Dire** : « Une opération, pas une procédure à plusieurs étapes. C'est la
 promesse du brief : plus jamais un déploiement raté qui reste en
 production. »
+
+> **Après cette étape, v1 sert 100 % du trafic** — donc rejouer la requête
+> 4 redonne des réponses v1, tronquées sur les contrats longs. C'est le
+> résultat attendu d'un rollback, pas une panne. Pour remontrer v2, il faut
+> refaire l'étape 3 (déployer un canary).
 
 ## 9. Le journal — tout est tracé
 

@@ -42,3 +42,5 @@ ops/registry/journal.jsonl
 ops/registry/v[2-9].*/
 ops/registry/v1.[1-9]*/
 ops/registry/v1.0.[1-9]*/
+# Artefacts écartés à la main (nom hors motif SemVer, ignorés du registre)
+ops/registry/_incident-*/

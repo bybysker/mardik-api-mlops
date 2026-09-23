@@ -162,10 +162,17 @@
       mélangeait les lignées v1/v2 — le premier vrai déploiement v2 via
       `cd-main.yml` aurait été étiqueté `v1.0.1` au lieu de `v2.0.0`.
       Détail : `CHANGELOG.md`/`MEMORY.md` (section incident).
-- [ ] **Registre local à vérifier/nettoyer** : `ops/registry/` (non
-      versionné) a `canary: v1.0.1` (en réalité le bundle v2, mal
-      étiqueté par l'incident du 2026-09-23) — laissé en l'état à la
-      demande de l'utilisateur, pas nettoyé automatiquement.
+- [x] **Registre local remis à plat (2026-09-23)** : l'artefact `v1.0.1`
+      (bundle v2 mal étiqueté par l'incident du matin) déplacé en
+      `ops/registry/_incident-2026-09-23-v1.0.1/` — ignoré par
+      `Registry.versions()` (nom hors motif SemVer), réversible. État de
+      départ propre : `v1.0.0` active, aucun canary, et
+      `prochaine_version` y produit bien `v2.0.0`.
+- [x] **Bug de rollback corrigé (2026-09-23, TDD)** : deux rollbacks
+      consécutifs mettaient `active: null` (ni canary ni `precedente` à
+      restaurer) → la gateway répondait 500 sur `/analyse`. Constaté en
+      conditions réelles pendant 12 min. `rollback()` garde désormais
+      l'active en place quand il n'y a rien à annuler.
 - [x] `docs/demo-v1-v2-pilotage.md` + `bruno/mardik-demo-cto/` (2026-09-23) :
       déroulé de présentation v1 → v2 → pilotage et les 9 requêtes HTTP
       correspondantes. **Règle à retenir pour tout `.bru`** : le corps d'un

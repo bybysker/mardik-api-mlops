@@ -424,13 +424,30 @@ déploiement v2 via `cd-main.yml` aurait été étiqueté `v1.0.1` au lieu de
 `v2.0.0`. Corrigé (TDD, `bundle="v2"` filtre désormais par lignée via
 `manifest.json::strategie`) — détail complet dans `CHANGELOG.md`.
 
-**Nettoyage non fait, laissé en l'état à la demande de l'utilisateur** :
-le registre local (`ops/registry/`, hors dépôt git — `v[2-9].*/` et
-`v1.0.[1-9]*/` gitignorés) a toujours `canary: v1.0.1` (20 %, en réalité le
-bundle v2) au moment d'écrire cette entrée. L'utilisateur n'a pas demandé
-de rollback ; à vérifier/nettoyer avant tout vrai déploiement si ça n'a
-pas été fait entre-temps (`ops/deploy.py rollback`, ou ré-étiqueter
-proprement en `v2.0.0` une fois `prochaine_version` corrigé).
+**Nettoyage fait en fin de journée** : l'artefact `ops/registry/v1.0.1/`
+(bundle v2 mal étiqueté) a été déplacé en
+`ops/registry/_incident-2026-09-23-v1.0.1/` — nom hors motif SemVer, donc
+ignoré par `Registry.versions()`, et réversible. Le registre repart propre
+(`v1.0.0` active, aucun canary) et `prochaine_version` y produit bien
+`v2.0.0`.
+
+## Second bug trouvé le même jour : rollback pouvait mettre `active: null`
+
+En diagnostiquant « la démo répond tronqué » (l'utilisateur croyait avoir
+promu à 100 %), la lecture de `ops/registry/journal.jsonl` a montré qu'il
+n'y avait eu **aucune promotion**, seulement trois rollbacks — « rollback »
+signifie littéralement *v1 à 100 %*, donc v1 (qui tronque) servait bien
+tout le trafic : comportement attendu, pas un bug. **Mais** le journal a
+révélé un vrai défaut : le second rollback (sans canary ni `precedente`)
+avait mis `active: null`, état dans lequel la gateway répond **500** sur
+`/analyse` (`registry.bundle(None)` → `TypeError`). Le système est resté
+ainsi 12 minutes en conditions réelles. Corrigé en TDD (2 tests rejouant la
+séquence) : sans rien à annuler, `rollback()` garde l'active en place.
+
+**Leçon de méthode confirmée deux fois dans la journée** : le journal de
+pilotage et les fichiers d'état (`index.json`, `journal.jsonl`) racontent
+précisément ce qui s'est passé — les lire *avant* de formuler une
+hypothèse, plutôt que de deviner à partir du symptôme rapporté.
 
 ## Environnement technique
 

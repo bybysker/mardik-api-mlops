@@ -128,6 +128,34 @@ def test_rollback_avec_canary_en_cours(registry):
     assert index["canary"] is None and index["canary_percent"] == 0
 
 
+def test_rollback_sans_rien_a_annuler_garde_lactive(registry):
+    """Aucun canary, aucune version précédente : il n'y a rien à annuler.
+    Le rollback doit garder la version active en place — jamais `None`, qui
+    laisserait la gateway sans version à servir (TypeError → 500)."""
+    from ops.deploy import rollback
+
+    index = rollback(registry=registry)
+
+    assert index["active"] == "v1.0.0"
+    assert index["canary"] is None
+
+
+def test_rollback_deux_fois_de_suite_ne_casse_pas_letat(registry):
+    """Séquence observée en production le 2026-09-23 : un rollback retire le
+    canary, un second rollback (6 s plus tard, sans rien à annuler) mettait
+    `active: null` — la gateway plantait alors sur chaque requête."""
+    from ops.deploy import deployer_canary, rollback
+
+    _livrer_v2(registry)
+    deployer_canary("v2.0.0", pourcentage=20, registry=registry)
+
+    rollback(registry=registry)
+    index = rollback(registry=registry)
+
+    assert index["active"] == "v1.0.0"
+    assert registry.active() is not None
+
+
 def test_surveiller_sans_derive(metriques: MetricsStore, registry):
     from ops.deploy import deployer_canary, surveiller
 

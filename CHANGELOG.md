@@ -2,6 +2,36 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (bug de rollback : plus jamais d'`active: null`)
+
+- **Bug trouvé en diagnostiquant une démo qui « répondait tronqué »**
+  (`ops/registry/journal.jsonl` relu après coup) : deux rollbacks
+  consécutifs mettaient **`active: null`** dans le registre. Le premier
+  retirait le canary (normal) ; le second, n'ayant ni canary ni
+  `precedente` à restaurer, basculait `active` vers un `precedente` vide.
+  La gateway appelait alors `registry.bundle(None)` →
+  `TypeError: unsupported operand type(s) for /: 'PosixPath' and 'NoneType'`
+  → **500 sur `/analyse`**. Constaté en conditions réelles : le système est
+  resté dans cet état 12 minutes (09:46:10 → 09:58:13).
+- **Correctif** (TDD, 2 tests ajoutés qui rejouent exactement cette
+  séquence) : sans canary **et** sans version précédente, il n'y a rien à
+  annuler — `rollback()` garde l'active en place. Un rollback ne peut plus
+  laisser le système sans version à servir, ce qui était directement
+  contraire à la promesse « rollback immédiat, aucune interruption » du
+  brief. Suite : **104 passed**, ruff clean.
+- **Fausse alerte écartée au passage** : les réponses tronquées observées
+  n'étaient pas un bug — le journal ne contenait aucune promotion, seulement
+  des rollbacks, et « rollback » signifie littéralement *v1 à 100 %*, donc
+  v1 (qui tronque) servait tout le trafic. `docs/demo-v1-v2-pilotage.md`
+  le dit maintenant explicitement (encadré après l'étape 8) et fournit une
+  vérification de l'état de départ avant de commencer la démo.
+- **Registre local remis à plat** : l'artefact `ops/registry/v1.0.1/`
+  (bundle v2 mal étiqueté par l'incident du matin) déplacé en
+  `_incident-2026-09-23-v1.0.1/` — nom hors motif SemVer, donc ignoré par
+  `Registry.versions()`, et réversible. Le registre repart de `v1.0.0`
+  active sans canary ; `prochaine_version` y produit bien `v2.0.0`
+  (vérifié), ce qui valide aussi le correctif de lignée de ce matin.
+
 ## 2026-09-23 (script de démo v1 → v2 → pilotage + correctif `prochaine_version`)
 
 - **`docs/demo-v1-v2-pilotage.md` (nouveau)** : déroulé écrit à suivre en

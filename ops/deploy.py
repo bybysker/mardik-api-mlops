@@ -154,8 +154,12 @@ def rollback(registry: Registry | None = None, motif: str = "manuel", **details:
     avant = {"active": idx.get("active"), "canary": idx.get("canary")}
     if idx.get("canary"):
         idx = {**idx, "canary": None, "canary_percent": 0}
-    else:
+    elif idx.get("precedente"):
         idx = {**idx, "active": idx.get("precedente"), "precedente": idx.get("active")}
+    # Ni canary ni version précédente : il n'y a rien à annuler. On garde
+    # l'active en place — la basculer vers `precedente` vide laisserait la
+    # gateway sans version à servir (incident du 2026-09-23 : deux rollbacks
+    # de suite mettaient `active: null`, /analyse répondait 500).
     reg.ecrire_index(idx)
     apres = {"active": idx.get("active"), "canary": idx.get("canary")}
     reg.journaliser("rollback", motif=motif, avant=avant, apres=apres, **details)
