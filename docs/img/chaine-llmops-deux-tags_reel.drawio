@@ -21,7 +21,7 @@
         </mxCell>
 
         <!-- chaine principale -->
-        <mxCell id="n1" value="PR vers main approuvée&#10;(compte dédié mardik-relecteur)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+        <mxCell id="n1" value="PR vers main approuvée&#10;(compte dédié de revue)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
           <mxGeometry x="340" y="60" width="280" height="50" as="geometry" />
         </mxCell>
 

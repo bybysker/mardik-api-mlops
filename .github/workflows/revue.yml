@@ -1,7 +1,9 @@
 name: Revue — preuve d'approbation
 
-# Pose revue-ok/<sha7> quand mardik-relecteur (compte GitHub dédié à la
-# revue, jamais le développeur) approuve une PR vers main, sur le SHA de
+# Pose revue-ok/<sha7> quand connarddu16-design (compte GitHub dédié à la
+# revue, jamais le développeur — créé le 2026-09-23, collaborateur `write`
+# sur ce dépôt ; la conception le nommait `mardik-relecteur`, nom de
+# travail jamais enregistré) approuve une PR vers main, sur le SHA de
 # tête de la PR. Auto-revue assumée : le second compte est un mécanisme de
 # fraîcheur (le SHA approuvé doit être celui de tête), pas une deuxième
 # personne — même principe que le pipeline QualiCheck
@@ -22,7 +24,7 @@ jobs:
   revue-ok:
     if: >-
       github.event.review.state == 'approved'
-      && github.event.review.user.login == 'mardik-relecteur'
+      && github.event.review.user.login == 'connarddu16-design'
       && github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
     steps:
