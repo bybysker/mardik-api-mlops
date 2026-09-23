@@ -2,6 +2,27 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (chantier 2 : `app/gateway.py` implémenté)
+
+- **`app/gateway.py` implémenté** (TDD, `tests/unit/test_gateway.py` écrits
+  rouges avant l'implémentation) : `choisir_version` (fonction pure de
+  routage canary), `GET /gateway/etat`, `POST /analyse`. La gateway relit
+  `ops/registry/index.json` à chaque requête (promotion/rollback pris en
+  compte sans redémarrage), route vers `analyser_v1` ou `analyser_v2` selon
+  la `strategie` du bundle livré, force le pourcentage canary si
+  `CANARY_PERCENT` est défini, propage 413/503 comme `/v1` et `/v2`.
+- **`@router.post("/analyse", response_model=None)`** : sans ce réglage,
+  FastAPI inférait `-> dict` comme `response_model` et rejetait la réponse
+  (un `ReponseAnalyseV1`/`ReponseAnalyseV2`, pas un `dict` brut) avec une
+  `ResponseValidationError` — trouvé en lançant la suite complète après
+  l'implémentation initiale.
+- **`test_promotion_canary_puis_totale` et `test_rollback_en_une_operation`**
+  (`tests/acceptance/test_observabilite.py`) ne sont plus `xfail` : ils ne
+  dépendaient que de `gateway.py` (`ops/deploy.py::rollback/promouvoir/
+  deployer_canary` étaient déjà implémentés, chantier 1 point 3). Suite :
+  84 passed, 1 xfailed (`test_journal_derive_et_rollback_automatique`,
+  dépend de `ops/deploy.py::surveiller`, toujours `[STUB]`).
+
 ## 2026-09-23 (chantier 2 : `ops/dashboard.py` implémenté)
 
 - **`ops/dashboard.py::resume/rendre_texte/rendre_html` implémentés**

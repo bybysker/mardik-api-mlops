@@ -19,7 +19,6 @@ def _livrer_v2(registry, version="v2.0.0"):
     return version
 
 
-@pytest.mark.xfail(reason=_HORS_PERIMETRE, strict=False)
 def test_rollback_en_une_operation(client, registry):
     """Étant donné une v2 promue en production après la v1, quand on déclenche un
     rollback, alors la v1 redevient la version active pour 100 % du trafic, sans
@@ -38,7 +37,6 @@ def test_rollback_en_une_operation(client, registry):
     assert client.post("/v1/analyse", json={"texte": "x" * 40}).status_code == 200
 
 
-@pytest.mark.xfail(reason=_HORS_PERIMETRE, strict=False)
 def test_promotion_canary_puis_totale(client, registry, contrat):
     """Étant donné une v2 étiquetée, quand on la déploie en canary à 30 % puis qu'on la
     promeut, alors la gateway sert d'abord un mélange v1/v2 (en-tête X-Mardik-Version),

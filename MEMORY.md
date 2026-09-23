@@ -332,6 +332,17 @@ branche).
   `test_rollback_en_une_operation` — dépendent de `app/gateway.py` ;
   `test_journal_derive_et_rollback_automatique` — dépend de
   `ops/deploy.py::surveiller`).
+- **`app/gateway.py` implémenté** (TDD, `tests/unit/test_gateway.py`) :
+  `choisir_version`, `GET /gateway/etat`, `POST /analyse` — route vers
+  `analyser_v1`/`analyser_v2` selon `bundle.strategie`, relit le registre à
+  chaque requête, `CANARY_PERCENT` force le pourcentage si défini. Piège
+  FastAPI rencontré : la route déclarée `-> dict` faisait inférer
+  `response_model=dict` à FastAPI, qui rejetait alors les réponses
+  (`ReponseAnalyseV1`/`V2`, pas des `dict` bruts) — corrigé avec
+  `response_model=None` explicite. `test_promotion_canary_puis_totale` et
+  `test_rollback_en_une_operation` ne sont plus `xfail`. Suite : 84 passed,
+  1 xfailed (reste `test_journal_derive_et_rollback_automatique`, dépend de
+  `ops/deploy.py::surveiller`).
 
 ## Environnement technique
 

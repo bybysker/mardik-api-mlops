@@ -24,9 +24,15 @@ Règles :
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response
+import os
+import random
+
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 
+from app.api_v1 import analyser_v1
+from app.api_v2 import DocumentTropLong, analyser_v2
+from app.llm_client import ErreurLLM, LLMClient
 from app.telemetry import Telemetry, build_default_telemetry
 from ops.registry import Registry
 
@@ -41,7 +47,9 @@ class RequeteAnalyse(BaseModel):
 def choisir_version(
     active: str, canary: str | None, canary_percent: int, tirage: float
 ) -> str:
-    raise NotImplementedError("gateway.choisir_version — fonction pure de routage canary")
+    if canary and tirage < canary_percent:
+        return canary
+    return active
 
 
 def get_registry() -> Registry:
@@ -54,14 +62,36 @@ def get_telemetry() -> Telemetry:
 
 @router.get("/gateway/etat")
 def etat(registry: Registry = Depends(get_registry)) -> dict:
-    raise NotImplementedError("gateway.etat — GET /gateway/etat")
+    canary, canary_percent = registry.canary()
+    return {"active": registry.active(), "canary": canary, "canary_percent": canary_percent}
 
 
-@router.post("/analyse")
+@router.post("/analyse", response_model=None)
 def analyse(
     requete: RequeteAnalyse,
     response: Response,
     registry: Registry = Depends(get_registry),
     telemetry: Telemetry = Depends(get_telemetry),
-) -> dict:
-    raise NotImplementedError("gateway.analyse — POST /analyse, routage canary v1/v2")
+):
+    active = registry.active()
+    canary, canary_percent = registry.canary()
+    canary_percent_force = os.environ.get("CANARY_PERCENT")
+    if canary_percent_force:
+        canary_percent = int(canary_percent_force)
+
+    version = choisir_version(active, canary, canary_percent, random.uniform(0, 100))
+    bundle = registry.bundle(version)
+    client = LLMClient(bundle)
+
+    try:
+        if bundle.strategie == "monolithique":
+            resultat = analyser_v1(requete.texte, client, telemetry)
+        else:
+            resultat = analyser_v2(requete.texte, client, telemetry)
+    except DocumentTropLong as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
+    except ErreurLLM as exc:
+        raise HTTPException(status_code=503, detail=f"fournisseur LLM indisponible : {exc}")
+
+    response.headers["X-Mardik-Version"] = version
+    return resultat

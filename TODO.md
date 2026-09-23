@@ -119,7 +119,9 @@
 - [ ] Faire lire `ops/metrics_v2.jsonl` par `ops/deploy.py::surveiller`
       (même besoin que `ops/dashboard.py`, déjà traité — condition pour que
       le trafic du container `v2` soit visible dans la surveillance)
-- [ ] `app/gateway.py::choisir_version/etat/analyse` — routage canary
+- [x] `app/gateway.py::choisir_version/etat/analyse` — routage canary
+      (2026-09-23, TDD). `test_promotion_canary_puis_totale` et
+      `test_rollback_en_une_operation` ne sont plus xfail.
 - [ ] `docs/exploitation.md` — gabarit fourni à compléter (7 sections)
 
 ## Environnement
