@@ -3,15 +3,23 @@ name: Revue — preuve d'approbation
 # Pose revue-ok/<sha7> quand connarddu16-design (compte GitHub dédié à la
 # revue, jamais le développeur — créé le 2026-09-23, collaborateur `write`
 # sur ce dépôt ; la conception le nommait `mardik-relecteur`, nom de
-# travail jamais enregistré) approuve une PR vers main, sur le SHA de
-# tête de la PR. Auto-revue assumée : le second compte est un mécanisme de
-# fraîcheur (le SHA approuvé doit être celui de tête), pas une deuxième
+# travail jamais enregistré) approuve une PR feature/x -> dev, sur le SHA
+# de tête de la PR. Auto-revue assumée : le second compte est un mécanisme
+# de fraîcheur (le SHA approuvé doit être celui de tête), pas une deuxième
 # personne — même principe que le pipeline QualiCheck
 # (/projets/QualiCheck/.gitea/workflows/revue.yml), adapté à la vraie
 # payload GitHub (review.state == 'approved', review.user.login — sur
 # Gitea ces deux champs ont un nom différent, cf. le commentaire de leur
-# fichier ; ici on utilise les champs GitHub natifs). Voir
-# docs/superpowers/specs/2026-09-22-chaine-llmops-design.md.
+# fichier ; ici on utilise les champs GitHub natifs).
+#
+# Cible dev, pas main (révisé 2026-09-23, écart 1 de intents.md — voir
+# docs/conception_revue/chantier1_llmops/gel-eval-avant-fusion.md) : la
+# conception d'origine faisait développer directement sur dev, la revue
+# portait donc sur dev -> main. Une branche feature/x s'intercale
+# désormais avant dev, pour que dev ne contienne que du code relu. La
+# fusion dev -> main qui suit reste fast-forward strict, comme le prévoyait
+# déjà la conception d'origine
+# (docs/superpowers/specs/2026-09-22-chaine-llmops-design.md).
 
 on:
   pull_request_review:
@@ -25,7 +33,7 @@ jobs:
     if: >-
       github.event.review.state == 'approved'
       && github.event.review.user.login == 'connarddu16-design'
-      && github.event.pull_request.base.ref == 'main'
+      && github.event.pull_request.base.ref == 'dev'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout au SHA relu
