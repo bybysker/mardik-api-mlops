@@ -1,0 +1,380 @@
+/* Maquette du client web de pilotage — feuille de style unique.
+   Parti pris : sobre et accessible. Contraste AA partout, et aucune
+   information n'est jamais portée par la seule couleur. */
+
+/* Ajout (câblage sur l'API, 2026-09-23) : texte réservé aux lecteurs
+   d'écran, ex. l'en-tête d'une colonne d'actions sans libellé visible. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Jetons de style ---------- */
+:root {
+  --bg: #f7f8f9;
+  --surface: #ffffff;
+  --border: #d8dce0;
+  --text: #1a1d21;
+  --text-muted: #5c6670;
+  --accent: #2c5282;
+  --ok: #1e7a45;
+  --warn: #8a5a00;
+  --critical: #b3261e;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+
+  --radius: 6px;
+}
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+a:focus-visible, button:focus-visible,
+input:focus-visible, select:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- 1. Barre de navigation ---------- */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-3) var(--space-5);
+  background: var(--text);
+  color: var(--surface);
+}
+
+.nav__brand { font-weight: 700; }
+
+.nav__links {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav__link {
+  display: block;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius);
+  color: var(--surface);
+  text-decoration: none;
+}
+
+.nav__link:hover { text-decoration: underline; }
+
+/* L'onglet actif est signalé par aria-current, pas seulement par le style. */
+.nav__link[aria-current="page"] {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ---------- 2. En-tête de page ---------- */
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-5);
+}
+
+.page-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.page-header h1 { margin: 0; font-size: 1.5rem; }
+
+.page-header__actions {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+/* ---------- 3. Carte ---------- */
+.card {
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.card__title {
+  margin: 0 0 var(--space-3);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Courte explication sous un titre de carte, quand le contenu n'est pas
+   auto-porteur (ex. un indicateur métier que tout le monde ne connaît pas). */
+.card__intro {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-style: italic;
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.grid--2 { grid-template-columns: repeat(2, 1fr); }
+.grid--4 { grid-template-columns: repeat(4, 1fr); }
+
+/* ---------- 4. Indicateur chiffré ---------- */
+.kpi__label {
+  margin: 0 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.kpi__value {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi__target {
+  margin: var(--space-1) 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* ---------- 5. Statut : pastille + libellé, jamais la couleur seule ---------- */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.status::before { content: "\25CF"; font-size: 0.75em; }
+
+.status--ok { color: var(--ok); }
+.status--warn { color: var(--warn); }
+.status--critical { color: var(--critical); }
+
+/* ---------- 8. Graphiques en CSS pur ---------- */
+.chart { margin: 0; padding: 0; list-style: none; }
+
+.chart__track {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.chart__bar { background: var(--accent); }
+
+.chart--horizontal .chart__row {
+  display: grid;
+  grid-template-columns: 3rem 1fr 4rem;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.chart--horizontal .chart__label { font-weight: 600; }
+.chart--horizontal .chart__track { height: 20px; }
+
+.chart--horizontal .chart__bar {
+  width: var(--ratio);
+  height: 100%;
+  border-radius: var(--radius);
+}
+
+.chart--horizontal .chart__value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart--vertical {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.chart--vertical .chart__col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+/* Effectif affiché au-dessus de chaque barre : sans lui, la barre ne dit que
+   « plus ou moins que sa voisine », jamais « combien ». */
+.chart--vertical .chart__count {
+  margin-bottom: var(--space-1);
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart--vertical .chart__bar-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 120px;
+}
+
+.chart--vertical .chart__bar {
+  width: 100%;
+  height: var(--ratio);
+  border-radius: 2px 2px 0 0;
+}
+
+/* Borne inférieure de la tranche, sous chaque barre — remplace l'ancien axe à
+   3 graduations qui ne permettait pas de rattacher une barre à sa tranche. */
+.chart--vertical .chart__col-label {
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+}
+
+.chart__note {
+  margin: var(--space-2) 0 0;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+/* Liste des événements récents : mise en forme locale, pas un composant. */
+.events { margin: 0; padding: 0; list-style: none; }
+.events li { padding: var(--space-2) 0; border-bottom: 1px solid var(--border); }
+.events li:last-child { border-bottom: 0; }
+
+.events time {
+  margin-right: var(--space-3);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 6. Étiquette catégorielle ---------- */
+/* Une étiquette qualifie, elle ne déclenche rien : ni bordure, ni pilule, ni
+   rectangle plein — sinon elle imite un bouton et laisse croire au lecteur du
+   journal que les décisions passées sont encore cliquables. Le sens reste porté
+   par le texte ; la couleur ne fait que le renforcer. */
+.tag {
+  display: inline-block;
+  padding: 1px var(--space-1);
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.tag--ok { color: var(--ok); }
+.tag--danger { color: var(--critical); }
+
+/* ---------- 7. Tableau de données ---------- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.table caption {
+  margin-bottom: var(--space-3);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.table th, .table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.table thead th { background: var(--bg); font-weight: 600; }
+.table td { font-variant-numeric: tabular-nums; }
+
+/* ---------- 9. Bandeau ---------- */
+/* Le libellé textuel (« Attention : », « État actuel : ») porte le sens ;
+   la couleur de bordure ne fait que le renforcer. */
+.callout {
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--text-muted);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.callout--info { border-left-color: var(--accent); }
+.callout--warn { border-left-color: var(--warn); }
+.callout__label { font-weight: 700; }
+
+/* ---------- 10. Bouton ---------- */
+.button {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button--secondary { border-color: var(--border); background: var(--surface); color: var(--text); }
+.button--primary { border-color: var(--accent); background: var(--accent); color: var(--surface); }
+.button--danger { border-color: var(--critical); background: var(--critical); color: var(--surface); }
+
+/* Palier canary : formulaire natif, mise en forme locale, pas un composant. */
+.fieldset {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.fieldset legend { padding: 0 var(--space-2); font-weight: 600; }
+
+.fieldset label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-right: var(--space-4);
+}
+
+.action-note {
+  margin: var(--space-3) 0 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* Filtre du journal : select natif, mise en forme locale, pas un composant. */
+.select {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}

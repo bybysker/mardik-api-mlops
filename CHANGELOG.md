@@ -2,6 +2,46 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-23 (chantier 2 : client web de pilotage câblé)
+
+- **`client_web/` (nouveau)** : les 4 pages de la maquette figée
+  (`conception_figee/sources/pilotage_maquette/html/`) recopiées et câblées
+  sur `ops/serveur_pilotage.py` — HTML/CSS/JS vanilla, aucun build, `app.js`
+  partagé (appels `fetch`, mappings signal/action, formatage FR). La
+  maquette elle-même n'est pas modifiée (lecture seule).
+  - `index.html` (tableau de bord) : `GET /pilotage/dashboard`, rafraîchissement
+    manuel + auto (30 s).
+  - `pilotage.html` (règles) : `GET /pilotage/regles`, édition inline
+    (`prompt()`) → `PUT /pilotage/regles/{signal}`.
+  - `actions.html` : `POST /pilotage/promotion` / `POST /pilotage/rollback`.
+    Paliers canary limités à 50/100 % (10 % est posé automatiquement par la
+    chaîne CD à la publication, pas par cet écran — la maquette proposait
+    10/50/100, ajusté au contrat réel de `POST /pilotage/promotion`).
+  - `journal.html` : `GET /pilotage/journal`, filtre par signal.
+- **Écart documenté vs maquette** : la carte « Distribution du score » de
+  `index.html` montrait un histogramme à 10 tranches (0,0 à 0,9) ; le
+  contrat gelé (`Dashboard.distribution_score`) n'expose que
+  `proportion_score_faible`/`seuil_faible` (une seule proportion, pas de
+  répartition par tranche) — remplacé par une seule barre, pas de données
+  fabriquées pour combler l'écart.
+- **CORS ouvert sur `ops/serveur_pilotage.py`** (`CORSMiddleware`,
+  `allow_origins=["*"]`) : le client web (port 8503) et le serveur de
+  pilotage (port 8002) sont deux origines différentes, pas de Caddy en
+  frontal pour les unifier à ce stade.
+- **Service `client_web` ajouté à `docker-compose.yml`** : réutilise
+  l'image du projet (`build: .`), sert les fichiers statiques via
+  `python -m http.server 8503`.
+- **Vérification manuelle** (pas de navigateur disponible ici) :
+  `node --check` sur `app.js` + les scripts inline des 4 pages (aucune
+  erreur de syntaxe) ; serveur de pilotage lancé en local avec des données
+  de test, `GET /pilotage/dashboard`/`regles`/`journal` renvoient des
+  formes JSON conformes à ce que `app.js` consomme ; en-tête
+  `access-control-allow-origin` confirmé ; les 6 fichiers statiques
+  répondent 200 via `python -m http.server`. Pas de rendu visuel confirmé.
+- Suite Python inchangée : **100 passed**, ruff clean (aucun test
+  automatisé ajouté côté client web — HTML/CSS/JS vanilla sans outillage
+  de test, conforme au choix déjà acté pour ce client).
+
 ## 2026-09-23 (chantier 2 : `ops/serveur_pilotage.py` implémenté)
 
 - **Conflit de conception tranché** : la conception prévoyait deux nouveaux

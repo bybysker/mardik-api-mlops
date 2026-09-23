@@ -111,6 +111,15 @@
       périmètre, documentés dans ce même fichier : régénération du
       Caddyfile (pas de container Caddy encore) et bouclage des règles
       ajustables sur la décision automatique de `ops.deploy.surveiller`.
+- [x] Client web de pilotage câblé sur l'API (2026-09-23) : les 4 pages de
+      la maquette figée (`conception_figee/sources/pilotage_maquette/html/`)
+      recopiées et branchées dans `client_web/` (HTML/CSS/JS vanilla, aucun
+      build). Service `client_web` (port 8503) dans `docker-compose.yml`,
+      CORS ouvert sur `ops/serveur_pilotage.py`. Écarts documentés dans
+      `CHANGELOG.md`/`MEMORY.md` (histogramme de score simplifié en une
+      proportion, paliers canary limités à 50/100 %). Vérifié
+      mécaniquement (formes JSON, CORS, fichiers statiques servis) mais pas
+      dans un vrai navigateur.
 - [x] **Arbitrage tranché (2026-09-22)** : pas de duplication à résoudre.
       `ops/dashboard.py::resume()` reste la fonction de calcul (imposée par
       le test d'acceptance fourni `test_dashboard_par_version`) ;

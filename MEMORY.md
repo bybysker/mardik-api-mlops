@@ -376,6 +376,21 @@ branche).
   documenté : régénération Caddyfile (pas de container Caddy encore), et
   bouclage des règles ajustables sur la décision automatique. Suite :
   **100 passed**, ruff clean.
+- **`client_web/` câblé sur `ops/serveur_pilotage.py`** (2026-09-23) : les 4
+  pages de la maquette figée recopiées et branchées (HTML/CSS/JS vanilla,
+  `app.js` partagé). Écart documenté : la carte « distribution du score »
+  de la maquette montrait un histogramme à 10 tranches, le contrat gelé
+  n'expose qu'une proportion unique (`proportion_score_faible`) — remplacé
+  par une seule barre plutôt que d'inventer des données. Paliers canary de
+  `actions.html` limités à 50/100 % (10 % vient de la chaîne CD, pas de cet
+  écran — cohérent avec `Promotion.cible_pct` du contrat gelé, `enum:
+  [50, 100]`). CORS ouvert sur `ops/serveur_pilotage.py`
+  (`allow_origins=["*"]`) car pas de Caddy en frontal pour unifier les
+  origines. Service `client_web` (port 8503) ajouté à `docker-compose.yml`.
+  Vérifié manuellement (pas de navigateur ici) : `node --check` sur tout le
+  JS, formes JSON réelles de l'API conformes à ce que `app.js` consomme,
+  en-tête CORS présent, 6 fichiers statiques en 200 — **pas de rendu visuel
+  confirmé**. Chantier 2 : reste `docs/exploitation.md`.
 
 ## Environnement technique
 

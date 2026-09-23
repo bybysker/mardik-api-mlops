@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -353,6 +354,13 @@ def lire_journal(
 def creer_app_pilotage() -> FastAPI:
     app = FastAPI(title="Mardik — serveur de pilotage", version="1.0.0")
     app.include_router(router)
+
+    # Le client web (client_web/, servi sur son propre port) appelle cette
+    # API depuis une autre origine — pas de Caddy en frontal à ce stade pour
+    # unifier les origines (voir docs/conception_revue/pilotage/formats-ops.md).
+    app.add_middleware(
+        CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "PUT", "POST"], allow_headers=["*"]
+    )
 
     @app.get("/health")
     def health() -> dict[str, str]:

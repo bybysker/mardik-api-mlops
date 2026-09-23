@@ -106,3 +106,15 @@ services:
       timeout: 3s
       retries: 12
       start_period: 5s
+
+  # Le client web de pilotage (client_web/) : HTML/CSS/JS vanilla, aucun
+  # build, servi tel quel. Appelle serveur_pilotage sur son port hôte
+  # (8002) depuis le navigateur — CORS ouvert côté serveur_pilotage, pas de
+  # Caddy en frontal pour unifier les origines à ce stade.
+  client_web:
+    build: .
+    command: python -m http.server 8503 --directory /app/client_web
+    ports:
+      - "8503:8503"
+    volumes:
+      - ./client_web:/app/client_web

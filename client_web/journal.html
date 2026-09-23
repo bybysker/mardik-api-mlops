@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Journal de pilotage — Mardik Pilotage</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav" aria-label="Navigation principale">
+    <span class="nav__brand">MARDIK — Pilotage</span>
+    <ul class="nav__links">
+      <li><a class="nav__link" href="index.html">Tableau de bord</a></li>
+      <li><a class="nav__link" href="pilotage.html">Pilotage</a></li>
+      <li><a class="nav__link" href="actions.html">Actions</a></li>
+      <li><a class="nav__link" href="journal.html" aria-current="page">Journal</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <div class="page-header">
+      <h1>Journal de pilotage</h1>
+      <div class="page-header__actions">
+        <label for="filtre-signal">Filtrer par signal</label>
+        <select class="select" id="filtre-signal">
+          <option value="">Tous les signaux</option>
+          <option value="latence_p95">Latence P95</option>
+          <option value="taux_erreur">Taux d'erreur</option>
+          <option value="score_faible">Score &lt; 0,6</option>
+          <option value="canary">Canary</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="zone-erreur"></div>
+
+    <div class="card">
+      <table class="table">
+        <caption>Chaque ligne est une décision : signal déclencheur, valeur observée, seuil applicable, action prise, déclencheur et horodatage.</caption>
+        <thead>
+          <tr>
+            <th scope="col">Horodatage</th>
+            <th scope="col">Signal</th>
+            <th scope="col">Valeur</th>
+            <th scope="col">Seuil</th>
+            <th scope="col">Action</th>
+            <th scope="col">Déclencheur</th>
+          </tr>
+        </thead>
+        <tbody id="corps-journal"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    function ligneJournal(entree) {
+      return `<tr>
+        <td>${formatHorodatage(entree.ts)}</td>
+        <td>${libelleSignal(entree.signal)}</td>
+        <td>${entree.valeur ?? "—"}</td>
+        <td>${entree.seuil ?? "—"}</td>
+        <td><span class="${tagAction(entree.action)}">${libelleAction(entree.action)}</span></td>
+        <td><span class="tag">${entree.declencheur}</span></td>
+      </tr>`;
+    }
+
+    async function chargerJournal() {
+      const zoneErreur = document.getElementById("zone-erreur");
+      zoneErreur.innerHTML = "";
+      const signal = document.getElementById("filtre-signal").value;
+      const params = new URLSearchParams({ limite: "100" });
+      if (signal) params.set("signal", signal);
+      try {
+        const j = await appelApi(`/pilotage/journal?${params}`);
+        const corps = document.getElementById("corps-journal");
+        corps.innerHTML = j.entrees.length
+          ? j.entrees.slice().reverse().map(ligneJournal).join("")
+          : '<tr><td colspan="6">Aucune décision tracée pour l\'instant.</td></tr>';
+      } catch (erreur) {
+        afficherErreur(zoneErreur, erreur);
+      }
+    }
+
+    document.getElementById("filtre-signal").addEventListener("change", chargerJournal);
+    chargerJournal();
+  </script>
+</body>
+</html>

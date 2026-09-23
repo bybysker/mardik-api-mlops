@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau de bord — Mardik Pilotage</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav" aria-label="Navigation principale">
+    <span class="nav__brand">MARDIK — Pilotage</span>
+    <ul class="nav__links">
+      <li><a class="nav__link" href="index.html" aria-current="page">Tableau de bord</a></li>
+      <li><a class="nav__link" href="pilotage.html">Pilotage</a></li>
+      <li><a class="nav__link" href="actions.html">Actions</a></li>
+      <li><a class="nav__link" href="journal.html">Journal</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <div class="page-header">
+      <h1>Tableau de bord</h1>
+      <div class="page-header__actions">
+        <button type="button" class="button button--secondary" id="bouton-rafraichir">Rafraîchir</button>
+        <button type="button" class="button button--secondary" id="bouton-auto" aria-pressed="false">Auto : 30 s</button>
+      </div>
+    </div>
+
+    <div id="zone-erreur"></div>
+
+    <div class="grid grid--4">
+      <div class="card kpi">
+        <p class="kpi__label">Latence P95</p>
+        <p class="kpi__value" id="kpi-latence">—</p>
+        <p class="kpi__target">cible &lt; 8 s</p>
+        <p class="status" id="statut-latence"></p>
+      </div>
+
+      <div class="card kpi">
+        <p class="kpi__label">Coût moyen</p>
+        <p class="kpi__value" id="kpi-cout">—</p>
+        <p class="kpi__target">cible &lt; 0,15 €</p>
+        <p class="status" id="statut-cout"></p>
+      </div>
+
+      <div class="card kpi">
+        <p class="kpi__label">Taux d'erreur</p>
+        <p class="kpi__value" id="kpi-erreur">—</p>
+        <p class="kpi__target">seuil 10 %</p>
+        <p class="status" id="statut-erreur"></p>
+      </div>
+
+      <div class="card">
+        <h2 class="card__title">Trafic v1 / v2</h2>
+        <ul class="chart chart--horizontal" id="chart-trafic"></ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Distribution du score de confiance</h2>
+      <p class="card__intro">
+        Note entre 0 et 1 calculée par v2 sur chaque analyse en production, où la vérité
+        n'est pas connue : bas, elle signale au juriste une relecture souhaitable ;
+        haut, elle indique un résultat fiable sans revérification.
+      </p>
+      <ul class="chart chart--horizontal" id="chart-score"></ul>
+      <p class="chart__note">
+        Proportion des analyses dont le score de confiance est sous le seuil affiché.
+      </p>
+      <div class="callout callout--warn" id="alerte-score" hidden></div>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Événements récents</h2>
+      <ul class="events" id="liste-evenements"></ul>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    let minuteur = null;
+
+    async function chargerDashboard() {
+      const zoneErreur = document.getElementById("zone-erreur");
+      zoneErreur.innerHTML = "";
+      try {
+        const d = await appelApi("/pilotage/dashboard");
+        afficherDashboard(d);
+      } catch (erreur) {
+        afficherErreur(zoneErreur, erreur);
+      }
+    }
+
+    function afficherDashboard(d) {
+      document.getElementById("kpi-latence").textContent = formatSecondes(d.latence_p95_ms);
+      const statutLatence = document.getElementById("statut-latence");
+      statutLatence.className = statutClasse(d.latence_p95_ms, 8000);
+      statutLatence.textContent = statutLibelle(d.latence_p95_ms, 8000);
+
+      document.getElementById("kpi-cout").textContent = formatEuros(d.cout_moyen_eur);
+      const statutCout = document.getElementById("statut-cout");
+      statutCout.className = statutClasse(d.cout_moyen_eur, 0.15);
+      statutCout.textContent = statutLibelle(d.cout_moyen_eur, 0.15);
+
+      document.getElementById("kpi-erreur").textContent = formatPourcent(d.taux_erreur);
+      const statutErreur = document.getElementById("statut-erreur");
+      statutErreur.className = statutClasse(d.taux_erreur, 0.10);
+      statutErreur.textContent = statutLibelle(d.taux_erreur, 0.10);
+
+      const chartTrafic = document.getElementById("chart-trafic");
+      chartTrafic.innerHTML = ["v1", "v2"].map((v, i) => {
+        const pct = i === 0 ? d.trafic.v1_pct : d.trafic.v2_pct;
+        return `<li class="chart__row">
+          <span class="chart__label">${v}</span>
+          <div class="chart__track"><div class="chart__bar" style="--ratio: ${pct}%"></div></div>
+          <span class="chart__value">${pct} %</span>
+        </li>`;
+      }).join("");
+
+      const proportion = d.distribution_score.proportion_score_faible;
+      const seuil = d.distribution_score.seuil_faible;
+      document.getElementById("chart-score").innerHTML = `<li class="chart__row">
+        <span class="chart__label">&lt; ${seuil}</span>
+        <div class="chart__track"><div class="chart__bar" style="--ratio: ${proportion * 100}%"></div></div>
+        <span class="chart__value">${formatPourcent(proportion)}</span>
+      </li>`;
+      const alerteScore = document.getElementById("alerte-score");
+      if (proportion > 0.20) {
+        alerteScore.hidden = false;
+        alerteScore.innerHTML =
+          `<span class="callout__label">Attention :</span> zone à risque — proportion des scores &lt; ${seuil} : ${formatPourcent(proportion)} (seuil 20 %).`;
+      } else {
+        alerteScore.hidden = true;
+      }
+
+      document.getElementById("liste-evenements").innerHTML = d.evenements_recents.length
+        ? d.evenements_recents.map((e) =>
+            `<li><time datetime="${e.ts}">${formatHorodatage(e.ts)}</time>${libelleAction(e.type)}${e.message ? " — " + e.message : ""}</li>`
+          ).join("")
+        : "<li>Aucun événement récent.</li>";
+    }
+
+    document.getElementById("bouton-rafraichir").addEventListener("click", chargerDashboard);
+    document.getElementById("bouton-auto").addEventListener("click", (ev) => {
+      const actif = ev.target.getAttribute("aria-pressed") === "true";
+      if (actif) {
+        clearInterval(minuteur);
+        minuteur = null;
+        ev.target.setAttribute("aria-pressed", "false");
+        ev.target.textContent = "Auto : 30 s";
+      } else {
+        minuteur = setInterval(chargerDashboard, 30000);
+        ev.target.setAttribute("aria-pressed", "true");
+        ev.target.textContent = "Auto : activé";
+      }
+    });
+
+    chargerDashboard();
+  </script>
+</body>
+</html>

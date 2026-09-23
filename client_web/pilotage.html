@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau de pilotage — Mardik Pilotage</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav" aria-label="Navigation principale">
+    <span class="nav__brand">MARDIK — Pilotage</span>
+    <ul class="nav__links">
+      <li><a class="nav__link" href="index.html">Tableau de bord</a></li>
+      <li><a class="nav__link" href="pilotage.html" aria-current="page">Pilotage</a></li>
+      <li><a class="nav__link" href="actions.html">Actions</a></li>
+      <li><a class="nav__link" href="journal.html">Journal</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <div class="page-header">
+      <h1>Tableau de pilotage</h1>
+    </div>
+
+    <div id="zone-erreur"></div>
+
+    <div class="card">
+      <table class="table">
+        <caption>À quel seuil chaque signal déclenche quelle rétroaction, et où la décision est tracée. Cliquer « Modifier » pour ajuster un seuil (tracé au journal).</caption>
+        <thead>
+          <tr>
+            <th scope="col">Signal</th>
+            <th scope="col">Seuil</th>
+            <th scope="col">Rétroaction</th>
+            <th scope="col">Trace</th>
+            <th scope="col"><span class="visually-hidden">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody id="corps-regles"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Légende</h2>
+      <p><span class="tag">auto</span> déclenché automatiquement par le serveur de pilotage.</p>
+      <p><span class="tag">humain</span> nécessite un clic dans l'écran <a href="actions.html">Actions</a>.</p>
+    </div>
+
+    <div class="callout callout--warn">
+      <span class="callout__label">Attention :</span>
+      tout changement de seuil est tracé au journal — qui, quand, pourquoi.
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    function ligneRegle(regle) {
+      const retroactionDanger = regle.retroaction.toLowerCase().includes("rollback");
+      const tagRetroaction = retroactionDanger ? "tag tag--danger" : "tag tag--ok";
+      const declencheurs = regle.declencheur === "auto_humain"
+        ? '<span class="tag">auto</span> <span class="tag">humain</span>'
+        : `<span class="tag">${regle.declencheur}</span>`;
+      return `<tr data-signal="${regle.signal}">
+        <td>${libelleSignal(regle.signal)}</td>
+        <td class="cellule-seuil">${regle.seuil}</td>
+        <td><span class="${tagRetroaction}">${regle.retroaction}</span></td>
+        <td>${regle.trace} ${declencheurs}</td>
+        <td><button type="button" class="button button--secondary bouton-modifier">Modifier</button></td>
+      </tr>`;
+    }
+
+    async function chargerRegles() {
+      const zoneErreur = document.getElementById("zone-erreur");
+      zoneErreur.innerHTML = "";
+      try {
+        const r = await appelApi("/pilotage/regles");
+        document.getElementById("corps-regles").innerHTML = r.regles.map(ligneRegle).join("");
+      } catch (erreur) {
+        afficherErreur(zoneErreur, erreur);
+      }
+    }
+
+    document.getElementById("corps-regles").addEventListener("click", async (ev) => {
+      if (!ev.target.classList.contains("bouton-modifier")) return;
+      const ligne = ev.target.closest("tr");
+      const signal = ligne.dataset.signal;
+      const seuilActuel = ligne.querySelector(".cellule-seuil").textContent;
+      const nouveauSeuil = prompt(`Nouveau seuil pour « ${libelleSignal(signal)} » :`, seuilActuel);
+      if (nouveauSeuil === null || nouveauSeuil.trim() === "") return;
+      const zoneErreur = document.getElementById("zone-erreur");
+      zoneErreur.innerHTML = "";
+      try {
+        await appelApi(`/pilotage/regles/${signal}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ seuil: nouveauSeuil, declencheur: "humain" }),
+        });
+        await chargerRegles();
+      } catch (erreur) {
+        afficherErreur(zoneErreur, erreur);
+      }
+    });
+
+    chargerRegles();
+  </script>
+</body>
+</html>
