@@ -1,115 +1,193 @@
 <mxfile host="app.diagrams.net">
   <diagram name="Chaîne LLMOps — deux tags" id="chaine-llmops-deux-tags">
-    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="1260" math="0" shadow="0">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1750" pageHeight="1720" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
 
-        <mxCell id="titre" value="Chaîne LLMOps — mécanisme à deux tags (revue-ok / eval-ok)" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="200" y="10" width="600" height="30" as="geometry" />
+        <mxCell id="titre" value="Chaîne LLMOps — état réel (2026-09-23, alignée sur intents.md)" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="475" y="10" width="800" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="soustitre" value="feature/x → dev → main, cinq workflows, deux fusions fast-forward" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="475" y="38" width="800" height="20" as="geometry" />
         </mxCell>
 
-        <!-- lane independante ci.yml -->
-        <mxCell id="ci1" value="Push sur toute branche ≠ main" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="700" y="60" width="240" height="50" as="geometry" />
+        <!-- lots, en haut -->
+        <mxCell id="lots" value="Les trois lots (intents.md) : chaque problème doit être attrapé au lot le moins cher capable de le voir&#10;LOT A (ci.yml, à gauche) — lint + TU + TI, mock, secondes, informe le développeur, ne prouve rien&#10;LOT B (revue.yml, à droite) — revue de code, attention humaine, prouve que le code a été relu ET que le lot A était vert&#10;LOT C (gate.yml, à droite) — tests mockés + évaluation réelle Azure, argent, seule preuve qui autorise la fusion vers main" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=10;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="80" y="65" width="1580" height="90" as="geometry" />
         </mxCell>
-        <mxCell id="ci2" value="ci.yml&#10;lint + tests mockés" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="700" y="150" width="240" height="50" as="geometry" />
+
+        <!-- ======================= GAUCHE : ce qui part du push (ci.yml) ======================= -->
+
+        <mxCell id="ci1" value="Push sur feature/x&#10;(ou toute branche ≠ main)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="340" y="175" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ci2" value="ci.yml — LOT A&#10;lint + TU + TI (mock)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="340" y="265" width="280" height="50" as="geometry" />
         </mxCell>
         <mxCell id="eci1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="ci1" target="ci2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <!-- chaine principale -->
-        <mxCell id="n1" value="PR vers main approuvée&#10;(compte dédié de revue)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="340" y="60" width="280" height="50" as="geometry" />
+        <!-- fork depuis le meme push : alerte-eval.yml (I6, signal, pas de tag) -->
+        <mxCell id="al1" value="… et touche un chemin sensible&#10;(models/*, app/pipeline/**,&#10;app/llm_client.py, eval/**)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="650" y="265" width="290" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="eal0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="ci1" target="al1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="al2" value="alerte-eval.yml&#10;évaluation réelle (Azure), affichée&#10;dans le résumé de job" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="650" y="345" width="290" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="eal1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="al1" target="al2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="al3" value="SIGNAL SEUL — aucun tag,&#10;aucun jeton d'écriture" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="650" y="425" width="290" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="eal2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="al2" target="al3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="noteI6" value="I6 — informe le développeur tôt, ne prouve rien.&#10;Si ce workflow posait eval-ok, l'ordre&#10;revue → gate s'effondrerait." style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#b85450;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="650" y="480" width="310" height="50" as="geometry" />
         </mxCell>
 
-        <mxCell id="n2" value="revue.yml&#10;pose le tag (idempotent)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="340" y="150" width="280" height="50" as="geometry" />
+        <!-- ======================= DROITE : ce qui part de la PR ======================= -->
+
+        <mxCell id="n1" value="PR feature/x → dev approuvée&#10;(connarddu16-design, compte dédié)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="980" y="175" width="320" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n2" value="revue.yml — LOT B&#10;preuve de revue" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="980" y="245" width="320" height="50" as="geometry" />
         </mxCell>
         <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="n1" target="n2">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <mxCell id="n3" value="revue-ok/(sha)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="420" y="240" width="120" height="60" as="geometry" />
+        <mxCell id="n2b" value="lot A vert sur ce SHA ?&#10;(API : workflows/ci.yml/runs?head_sha=…,&#10;attente 10 min max)" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="315" width="240" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="n2" target="n3">
+        <mxCell id="e1b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="n2" target="n2b">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <mxCell id="n4" value="Développeur pousse&#10;le tag gate/(sha7)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="340" y="340" width="280" height="50" as="geometry" />
+        <mxCell id="n2c" value="Refus — pas de revue-ok&#10;(lot A rouge ou pas conclu)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="315" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e1c" value="non" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n2b" target="n2c">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="noteI3" value="I3 (2026-09-23) — needs: impossible entre deux&#10;workflows d'événements différents ; garde par appel&#10;API. Vérifié en réel côté vert (PR #2, 2026-09-23) ;&#10;côté rouge, jamais exercé, seulement relu." style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="370" width="300" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n3" value="revue-ok/(sha7)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="475" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="oui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="n2b" target="n3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- lot C : gate -->
+        <mxCell id="n4" value="Développeur pousse&#10;le tag gate/(sha7) — manuel, quand il veut" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="980" y="575" width="320" height="50" as="geometry" />
         </mxCell>
         <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="n3" target="n4">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
         <mxCell id="n5" value="revue-ok présent&#10;sur ce SHA ?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="370" y="430" width="220" height="100" as="geometry" />
+          <mxGeometry x="1020" y="665" width="240" height="100" as="geometry" />
         </mxCell>
         <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="n4" target="n5">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
         <mxCell id="n5b" value="Refus (exit 1)&#10;0 appel LLM payant" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="660" y="455" width="200" height="50" as="geometry" />
+          <mxGeometry x="1320" y="690" width="220" height="50" as="geometry" />
         </mxCell>
         <mxCell id="e5" value="non" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n5" target="n5b">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <mxCell id="n6" value="gate.yml&#10;job tests (mock) → job evaluation&#10;(vrai modèle Azure, needs: tests)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="340" y="580" width="280" height="60" as="geometry" />
+        <mxCell id="n6" value="gate.yml — LOT C&#10;job tests (mock, TA compris) → job evaluation&#10;(vrai modèle Azure, needs: tests)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="980" y="815" width="320" height="70" as="geometry" />
         </mxCell>
         <mxCell id="e6" value="oui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="n5" target="n6">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <mxCell id="n7" value="eval-ok/(sha)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
-          <mxGeometry x="420" y="680" width="120" height="60" as="geometry" />
+        <mxCell id="n7" value="eval-ok/(sha7)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="925" width="160" height="60" as="geometry" />
         </mxCell>
         <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="n6" target="n7">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <mxCell id="n8" value="Push sur main&#10;(fast-forward uniquement)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
-          <mxGeometry x="340" y="780" width="280" height="50" as="geometry" />
+        <!-- fusion 1 : feature -> dev -->
+        <mxCell id="n8" value="Fusion 1 (manuel, en ligne de commande) :&#10;git merge --ff-only feature/x  puis  git push origin dev&#10;— GitHub n'offre ce geste dans aucun bouton de PR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="960" y="1025" width="360" height="60" as="geometry" />
         </mxCell>
         <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="n7" target="n8">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
+        <mxCell id="n8b" value="dev = (sha7)&#10;gelé (revue-ok + eval-ok dessus)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="1035" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e8b" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;dashed=1;" edge="1" parent="1" source="n8" target="n8b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
 
-        <mxCell id="n9" value="revue-ok ET eval-ok&#10;présents sur ce SHA ?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="350" y="870" width="260" height="110" as="geometry" />
+        <!-- decision de deploiement : fusion 2 -->
+        <mxCell id="n9" value="Décision de déploiement (séparée, humaine) :&#10;fusionner vers main maintenant ?" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="960" y="1125" width="360" height="60" as="geometry" />
         </mxCell>
         <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;" edge="1" parent="1" source="n8" target="n9">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <mxCell id="n9b" value="Refus (exit 1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
-          <mxGeometry x="670" y="900" width="180" height="50" as="geometry" />
+        <mxCell id="n10" value="Fusion 2 (manuel) :&#10;git merge --ff-only dev  puis  git push origin main" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="960" y="1225" width="360" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="e10" value="non" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n9" target="n9b">
+        <mxCell id="e10" value="oui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="n9" target="n10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n9b" value="pas maintenant :&#10;dev reste en attente,&#10;gelé, prêt" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="1130" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e9b" value="non" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n9" target="n9b">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <mxCell id="n10" value="cd-main.yml&#10;build image → publier (gate) →&#10;registre → ghcr.io → canary 10 %" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
-          <mxGeometry x="320" y="1030" width="320" height="70" as="geometry" />
+        <mxCell id="n11" value="revue-ok ET eval-ok&#10;présents sur github.sha ?" style="shape=rhombus;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="1315" width="280" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="e11" value="oui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="n9" target="n10">
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="n10" target="n11">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <!-- routage long revue-ok -> guard cd-main -->
-        <mxCell id="e12" value="revue-ok/(sha)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0;exitY=0.5;entryX=0;entryY=0.5;fontSize=11;" edge="1" parent="1" source="n3" target="n9">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="150" y="270" />
-              <mxPoint x="150" y="925" />
-            </Array>
-          </mxGeometry>
+        <mxCell id="n11b" value="Refus (exit 1) —&#10;cd-main.yml ne déploie pas&#10;(vécu en réel, incident PR #1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="1345" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="non" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="n11" target="n11b">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n12" value="cd-main.yml&#10;build image → publier (rejoue le gate) →&#10;registre → ghcr.io → canary 10 %" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="980" y="1475" width="320" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="oui" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="n11" target="n12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- rulesets -->
+        <mxCell id="rules" value="Rulesets GitHub (posés 2026-09-23) :&#10;dev + main — pas de suppression, pas de force-push, historique linéaire&#10;(SANS « require a pull request before merging » : bloquerait la fusion en ligne de commande)&#10;revue-ok/*, eval-ok/*, v* — pas de suppression, pas de mise à jour (gate/* reste libre)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1575" width="1580" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legende" value="Jaune = déclencheur/geste humain ou CLI · Bleu = workflow GitHub Actions · Vert = tag posé (preuve) · Gris = décision testée dans le YAML · Rouge = refus" style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1655" width="1580" height="20" as="geometry" />
         </mxCell>
 
       </root>
