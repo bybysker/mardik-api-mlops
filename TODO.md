@@ -267,7 +267,45 @@ Plan exécuté le 2026-09-23 sur `feature/chaine-llmops-intents` :
       `docker-compose.yml`, healthchecks Python sur `/health`, vérifiés avec
       `docker compose up -d --build --wait`
 - [ ] Topologie cible complète de `docs/spec-v2.md` §4 : container v1 isolé,
-      container gateway, Caddy en frontal — non entamée
+      container gateway, Caddy en frontal — **après validation CI/CD**
 - [x] Vérifier que les tests d'intégration v1 restent verts (`make test-integration`)
 - [ ] `make test-acceptance` : 9 rouges / 1 vert au départ (`test_client_v1_fonctionne`),
       objectif = tout vert
+
+## Infrastructure GitHub — Prérequis pour la chaîne
+
+- [x] Ruleset `main-linear` créé : **Require linear history** sur `main` (2026-09-24)
+- [x] `cd-main.yml` vérifie les deux tags `revue-ok/<sha>` + `eval-ok/<sha>` avant
+      déploiement (ligne 41-46) — refuse si absent
+- [x] Tous les autres prérequis en place : compte de revue, secrets Azure,
+      `CI_TAG_TOKEN`, rulesets de protection (2026-09-23)
+
+## Validation CI/CD en conditions réelles
+
+- [ ] **Cas 1 : CI rouge** → pousser un commit avec lint cassé sur `feature/x`,
+      ouvrir PR vers `dev`, vérifier le `[refus]` de `revue.yml` (lot A doit être
+      vert avant `revue-ok`) — **jamais testé, seul cas non validé**
+- [ ] **Cas 2 : chaîne complète** → PR `feature/y → dev`, approuvée par
+      `connarddu16-design` (compte de revue), déclencher gate via tag `gate/<sha7>`,
+      vérifier `eval-ok` posé, puis fusion fast-forward `dev → main` :
+      ```bash
+      git push origin dev --force-with-lease  # ff seulement (localement d'abord : git merge --ff-only)
+      ```
+      Vérifier que `cd-main.yml` roule, image publiée sur `ghcr.io`, canary 10 %
+      activé.
+- [ ] **Cas 3 : vérifier le cas CI rouge n'est pas bloqué par un détail technique**
+      (impossible avant d'avoir repoussé un commit cassé, mais documenter la
+      procédure pour plus tard)
+
+## Test d'intégration complète sur dev
+
+- [ ] **Après validation de la CI/CD** : tester toute la solution sur ta machine
+      - Stack Docker complète (`make up`)
+      - Appel v1 + v2 + vérifier les métriques
+      - Simuler une dérive (`DRIFT=score_moyen`) → vérifier rollback auto via
+        `ops/deploy.surveiller` (faire tourner `make traffic` en parallèle)
+      - Vérifier le journal de pilotage + accès au client web (port 8503)
+      - Documenter le résultat dans un transcript (comme dans `docs/exploitation.md` § 7)
+- [ ] **Topologie Docker complète (optionnel, après le reste)** : container Caddy
+      en frontal, v1 isolé, container gateway, régénération Caddyfile dynamique
+      (points ouverts depuis chantier 2)

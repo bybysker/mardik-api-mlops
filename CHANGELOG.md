@@ -2,8 +2,18 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
-## 2026-09-24 (script de démo de la chaîne CI/CD)
+## 2026-09-24 (infrastructure GitHub + script de démo CI/CD)
 
+- **Infrastructure GitHub mise en place** :
+  - Ruleset `main-linear` créé : **Require linear history** sur `main`,
+    bloque les merge commits (fastidieux à désactiver après coup, utile pour
+    rappel rapide). `cd-main.yml` en est le vrai garde — le ruleset est un
+    filet de sécurité supplémentaire.
+  - Vérification dans `cd-main.yml` (ligne 41-46) déjà en place : refuse le
+    déploiement si pas les deux tags `revue-ok/<sha>` et `eval-ok/<sha>` sur
+    le SHA de tête. Prérequis tous cochés : compte de revue, secrets Azure,
+    `CI_TAG_TOKEN`, rulesets de protection sur tags/branches. **Chaîne
+    exerçable de bout en bout.**
 - **Nouveau `docs/demo-ci.md`** : déroulé de présentation (Dire / Faire /
   Montrer) qui fait parcourir un changement anodin à toute la chaîne —
   `make ci` en local, `ci.yml`, `alerte-eval.yml` (variante payante),
@@ -11,6 +21,9 @@
   cas nominal), fusion vers `main`, `cd-main.yml` jusqu'au canary 10 %.
   Tableau des coûts LLM par étape, parades pour les temps d'attente,
   remise en état après démo. Aucun code ni workflow modifié.
+- **`TODO.md` étendu** : sections « Infrastructure GitHub », « Validation CI/CD
+  en conditions réelles » (3 cas à tester) et « Test d'intégration complète
+  sur dev » pour clarifier ce qui reste et l'ordre de validation.
 
 ## 2026-09-23 (chaîne LLMOps alignée sur `intents.md`)
 
