@@ -241,6 +241,14 @@ Plan exécuté le 2026-09-23 sur `feature/chaine-llmops-intents` :
       restaurer) → la gateway répondait 500 sur `/analyse`. Constaté en
       conditions réelles pendant 12 min. `rollback()` garde désormais
       l'active en place quand il n'y a rien à annuler.
+- [x] `docs/demo-ci.md` (2026-09-24) : script de démo de la chaîne CI/CD,
+      de `make ci` au canary 10 % (commandes, workflow déclenché, coût LLM,
+      ce qu'il faut montrer). **Rédigé, pas encore joué.**
+- [ ] Jouer `docs/demo-ci.md` une fois en répétition — ce serait aussi
+      l'occasion de fermer « Cas CI rouge non vérifié » (pousser un commit
+      au lint cassé, approuver, constater le `[refus]` de `revue.yml`).
+- [ ] Décider si `cd-main.yml` doit committer `ops/registry/index.json` :
+      aujourd'hui l'état du canary posé en CI vit sur le runner seulement.
 - [x] `docs/demo-v1-v2-pilotage.md` + `bruno/mardik-demo-cto/` (2026-09-23) :
       déroulé de présentation v1 → v2 → pilotage et les 10 requêtes HTTP
       correspondantes. **Règle à retenir pour tout `.bru`** : le corps d'un

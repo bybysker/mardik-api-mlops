@@ -609,3 +609,14 @@ workflow — `needs:` ne relie que des jobs d'une même exécution, et
 `feature/x → dev` approuvée par `connarddu16-design`. Le cas « CI rouge » du
 garde n'a jamais pu être vérifié en réel — les 17 exécutions de `ci.yml` de
 l'historique sont toutes vertes.
+
+## Script de démo CI/CD (2026-09-24)
+
+`docs/demo-ci.md` : déroulé Dire / Faire / Montrer de la chaîne complète
+(`make ci` → `ci.yml` → `revue.yml` → ff `dev` → `gate.yml` → ff `main` →
+`cd-main.yml`). Choix : changement anodin hors chemins sensibles (pas
+d'alerte payante), refus du gate sans `revue-ok` montré en premier
+(gratuit). Deux effets de bord de `cd-main.yml` à connaître : il pousse un
+commit `chore(registry)` sur `main` (réaligner `dev` ensuite) et **ne
+committe pas `ops/registry/index.json`** — l'état du canary posé en CI
+n'arrive pas dans le dépôt (question ouverte dans `TODO.md`).

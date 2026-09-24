@@ -2,6 +2,16 @@
 
 > Tracé horodaté, ordre inverse (plus récent en premier).
 
+## 2026-09-24 (script de démo de la chaîne CI/CD)
+
+- **Nouveau `docs/demo-ci.md`** : déroulé de présentation (Dire / Faire /
+  Montrer) qui fait parcourir un changement anodin à toute la chaîne —
+  `make ci` en local, `ci.yml`, `alerte-eval.yml` (variante payante),
+  `revue.yml`, fusion ff-only vers `dev`, `gate.yml` (refus sans revue puis
+  cas nominal), fusion vers `main`, `cd-main.yml` jusqu'au canary 10 %.
+  Tableau des coûts LLM par étape, parades pour les temps d'attente,
+  remise en état après démo. Aucun code ni workflow modifié.
+
 ## 2026-09-23 (chaîne LLMOps alignée sur `intents.md`)
 
 Exécution du plan `docs/superpowers/plans/2026-09-23-chaine-llmops-intents.md`
