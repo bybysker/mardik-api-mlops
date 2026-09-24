@@ -14,6 +14,12 @@
     le SHA de tête. Prérequis tous cochés : compte de revue, secrets Azure,
     `CI_TAG_TOKEN`, rulesets de protection sur tags/branches. **Chaîne
     exerçable de bout en bout.**
+- **Tentative 1 de validation CI/CD (avortée)** : PR #3 créée
+  (`feature/test-ci-cd → dev`), approuvée via `connarddu16-design`. Étape
+  bloquante : `revue.yml` doit poser `revue-ok` automatiquement après
+  approbation, mais la vérification n'était pas aisée en CLI — session
+  abandonnée pour redémarrer avec VSCode et Claude Code, meilleure DX pour
+  cette validation itérative.
 - **Nouveau `docs/demo-ci.md`** : déroulé de présentation (Dire / Faire /
   Montrer) qui fait parcourir un changement anodin à toute la chaîne —
   `make ci` en local, `ci.yml`, `alerte-eval.yml` (variante payante),
