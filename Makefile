@@ -46,9 +46,10 @@ fixtures:           ## (ré)enregistre les fixtures MOCK en appelant le vrai mod
 
 ci:                 ## l'équivalent local du workflow GitHub (MOCK=on)
 	uv run ruff check .
+	MOCK=on uv run pytest -q tests/unit
 	MOCK=on uv run pytest -q tests/integration
 	MOCK=on uv run pytest -q tests/acceptance
-	@echo "TODO gate d'évaluation / publication / canary : voir .github/workflows/llmops.yml"
+	@echo "Gate d'évaluation / publication / canary : voir .github/workflows/gate.yml et cd-main.yml"
 
 lint:
 	uv run ruff check .
@@ -58,5 +59,5 @@ fmt:
 	uv run ruff check --fix .
 
 clean:
-	rm -rf .pytest_cache .ruff_cache ops/metrics.jsonl eval/history.jsonl eval/.metrics_eval.jsonl
+	rm -rf .pytest_cache .ruff_cache ops/metrics.jsonl ops/metrics_v2.jsonl eval/history.jsonl eval/.metrics_eval.jsonl
 	find . -name __pycache__ -type d -prune -exec rm -rf {} +

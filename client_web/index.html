@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau de bord — Mardik Pilotage</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav" aria-label="Navigation principale">
+    <span class="nav__brand">MARDIK — Pilotage</span>
+    <ul class="nav__links">
+      <li><a class="nav__link" href="index.html" aria-current="page">Tableau de bord</a></li>
+      <li><a class="nav__link" href="pilotage.html">Pilotage</a></li>
+      <li><a class="nav__link" href="actions.html">Actions</a></li>
+      <li><a class="nav__link" href="journal.html">Journal</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <div class="page-header">
+      <h1>Tableau de bord</h1>
+    </div>
+    <p class="chart__note" id="note-fenetre">Valeurs en temps réel, calculées sur une fenêtre glissante.</p>
+
+    <div id="zone-erreur"></div>
+
+    <div class="grid grid--4">
+      <div class="card kpi">
+        <p class="kpi__label">Latence P95</p>
+        <p class="kpi__value" id="kpi-latence">—</p>
+        <p class="kpi__target" id="cible-latence">cible —</p>
+        <p class="status" id="statut-latence"></p>
+      </div>
+
+      <div class="card kpi">
+        <p class="kpi__label">Coût moyen</p>
+        <p class="kpi__value" id="kpi-cout">—</p>
+        <p class="kpi__target" id="cible-cout">cible —</p>
+        <p class="status" id="statut-cout"></p>
+      </div>
+
+      <div class="card kpi">
+        <p class="kpi__label">Taux d'erreur</p>
+        <p class="kpi__value" id="kpi-erreur">—</p>
+        <p class="kpi__target" id="cible-erreur">seuil —</p>
+        <p class="status" id="statut-erreur"></p>
+      </div>
+
+      <div class="card">
+        <h2 class="card__title">Trafic v1 / v2</h2>
+        <ul class="chart chart--horizontal" id="chart-trafic"></ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Distribution du score de confiance</h2>
+      <p class="card__intro">
+        Note entre 0 et 1 calculée par v2 sur chaque analyse en production, où la vérité
+        n'est pas connue : bas, elle signale au juriste une relecture souhaitable ;
+        haut, elle indique un résultat fiable sans revérification.
+      </p>
+      <ul class="chart chart--horizontal" id="chart-score"></ul>
+      <p class="chart__note">
+        Proportion des analyses dont le score de confiance est sous le seuil affiché.
+      </p>
+      <div class="callout callout--warn" id="alerte-score" hidden></div>
+      <p class="card__intro">
+        Distribution par version (nombre de mesures par tranche de 0,2) : une moyenne ou
+        une proportion peuvent masquer des scores concentrés à la fois très bas et très
+        hauts, que la distribution révèle.
+      </p>
+      <div id="histogrammes-score-version"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="card__title">Événements récents</h2>
+      <ul class="events" id="liste-evenements"></ul>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    // Extrait le premier nombre d'un texte de seuil renvoyé par /pilotage/regles
+    // (ex. "> 8 s" -> 8, "> 20 % de scores < 0,6" -> 20).
+    function extraireSeuilNumerique(texte) {
+      const trouve = texte.match(/-?\d+(?:[.,]\d+)?/);
+      return trouve ? parseFloat(trouve[0].replace(",", ".")) : null;
+    }
+
+    async function chargerDashboard() {
+      const zoneErreur = document.getElementById("zone-erreur");
+      zoneErreur.innerHTML = "";
+      try {
+        const [d, r] = await Promise.all([
+          appelApi("/pilotage/dashboard"),
+          appelApi("/pilotage/regles"),
+        ]);
+        const regles = Object.fromEntries(r.regles.map((regle) => [regle.signal, regle]));
+        afficherDashboard(d, regles);
+      } catch (erreur) {
+        afficherErreur(zoneErreur, erreur);
+      }
+    }
+
+    function afficherDashboard(d, regles) {
+      const fenetreMin = d.fenetre.taille_requetes / 60;
+      document.getElementById("note-fenetre").textContent =
+        `Valeurs en temps réel, calculées sur les ${fenetreMin} dernières minutes.`;
+
+      const seuilLatenceS = extraireSeuilNumerique(regles.latence_p95.seuil);
+      const seuilErreurPct = extraireSeuilNumerique(regles.taux_erreur.seuil);
+      const seuilCoutEur = extraireSeuilNumerique(regles.cout_moyen.seuil);
+
+      document.getElementById("cible-latence").textContent = `cible < ${seuilLatenceS} s`;
+      document.getElementById("kpi-latence").textContent = formatSecondes(d.latence_p95_ms);
+      const statutLatence = document.getElementById("statut-latence");
+      statutLatence.className = statutClasse(d.latence_p95_ms, seuilLatenceS * 1000);
+      statutLatence.textContent = statutLibelle(d.latence_p95_ms, seuilLatenceS * 1000);
+
+      document.getElementById("cible-cout").textContent =
+        `cible < ${seuilCoutEur.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
+      document.getElementById("kpi-cout").textContent = formatEuros(d.cout_moyen_eur);
+      const statutCout = document.getElementById("statut-cout");
+      statutCout.className = statutClasse(d.cout_moyen_eur, seuilCoutEur);
+      statutCout.textContent = statutLibelle(d.cout_moyen_eur, seuilCoutEur);
+
+      document.getElementById("cible-erreur").textContent = `seuil ${seuilErreurPct} %`;
+      document.getElementById("kpi-erreur").textContent = formatPourcent(d.taux_erreur);
+      const statutErreur = document.getElementById("statut-erreur");
+      statutErreur.className = statutClasse(d.taux_erreur, seuilErreurPct / 100);
+      statutErreur.textContent = statutLibelle(d.taux_erreur, seuilErreurPct / 100);
+
+      const chartTrafic = document.getElementById("chart-trafic");
+      chartTrafic.innerHTML = ["v1", "v2"].map((v, i) => {
+        const pct = i === 0 ? d.trafic.v1_pct : d.trafic.v2_pct;
+        return `<li class="chart__row">
+          <span class="chart__label">${v}</span>
+          <div class="chart__track"><div class="chart__bar" style="--ratio: ${pct}%"></div></div>
+          <span class="chart__value">${pct} %</span>
+        </li>`;
+      }).join("");
+
+      const proportion = d.distribution_score.proportion_score_faible;
+      const seuil = d.distribution_score.seuil_faible;
+      document.getElementById("chart-score").innerHTML = `<li class="chart__row">
+        <span class="chart__label">&lt; ${seuil}</span>
+        <div class="chart__track"><div class="chart__bar" style="--ratio: ${proportion * 100}%"></div></div>
+        <span class="chart__value">${formatPourcent(proportion)}</span>
+      </li>`;
+      const seuilScoreFaiblePct = extraireSeuilNumerique(regles.score_faible.seuil);
+      const alerteScore = document.getElementById("alerte-score");
+      if (proportion * 100 > seuilScoreFaiblePct) {
+        alerteScore.hidden = false;
+        alerteScore.innerHTML =
+          `<span class="callout__label">Attention :</span> zone à risque — proportion des scores &lt; ${seuil} : ${formatPourcent(proportion)} (seuil ${seuilScoreFaiblePct} %).`;
+      } else {
+        alerteScore.hidden = true;
+      }
+
+      const histogrammes = document.getElementById("histogrammes-score-version");
+      const distributionParVersion = d.distribution_score_par_version || {};
+      const versions = Object.keys(distributionParVersion);
+      histogrammes.innerHTML = versions.length
+        ? versions.map((version) => {
+            const tranches = distributionParVersion[version];
+            const effectifMax = Math.max(1, ...tranches.map((t) => t.n));
+            const colonnes = tranches.map((t) => {
+              const ratio = (t.n / effectifMax) * 100;
+              const classeBarre = t.borne_max <= seuil ? "chart__bar chart__bar--alert" : "chart__bar";
+              const borneMin = t.borne_min.toString().replace(".", ",");
+              return `<div class="chart__col">
+                <span class="chart__count">${t.n}</span>
+                <div class="chart__bar-track"><div class="${classeBarre}" style="--ratio: ${ratio}%"></div></div>
+                <span class="chart__col-label">${borneMin}</span>
+              </div>`;
+            }).join("");
+            return `<p class="chart__note"><strong>${version}</strong></p>
+              <div class="chart chart--vertical">${colonnes}</div>`;
+          }).join("")
+        : "<p class=\"chart__note\">Aucun trafic sur cette fenêtre.</p>";
+
+      document.getElementById("liste-evenements").innerHTML = d.evenements_recents.length
+        ? d.evenements_recents.map((e) =>
+            `<li><time datetime="${e.ts}">${formatHorodatage(e.ts)}</time>${libelleAction(e.type)}${e.message ? " — " + e.message : ""}</li>`
+          ).join("")
+        : "<li>Aucun événement récent.</li>";
+    }
+
+    chargerDashboard();
+  </script>
+</body>
+</html>

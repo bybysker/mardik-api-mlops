@@ -35,12 +35,17 @@ import argparse
 import json
 import re
 import sys
+import tempfile
+import time
 from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from app.llm_client import Bundle
-from app.telemetry import Telemetry
+from app.api_v1 import analyser_v1
+from app.api_v2 import analyser_v2
+from app.llm_client import Bundle, LLMClient
+from app.telemetry import NoopSpanExporter, Telemetry, build_telemetry
 from ops.registry import MOTIF_VERSION, Registry
 
 RACINE = Path(__file__).resolve().parent.parent
@@ -88,6 +93,11 @@ def _p95(valeurs: list[float]) -> float:
     return tri[min(len(tri) - 1, int(round(0.95 * len(tri) + 0.5)) - 1)]
 
 
+def _telemetry_jetable() -> Telemetry:
+    chemin = Path(tempfile.mkdtemp()) / "metrics.jsonl"
+    return build_telemetry(span_exporter=NoopSpanExporter(), metrics_path=chemin)
+
+
 def evaluer(
     version: str,
     *,
@@ -102,7 +112,83 @@ def evaluer(
     sous_ensemble: list[str] | None = None,
     historique: Path | None = CHEMIN_HISTORIQUE,
 ) -> Rapport:
-    raise NotImplementedError("eval.run_eval.evaluer — le gate d'évaluation")
+    bundle = charger_bundle(version, registry)
+    client = LLMClient(bundle)
+    tel = telemetry or _telemetry_jetable()
+    essais = n_essais or int(bundle.parametres.get("essais_eval", 1))
+    attendus_par_contrat = charger_attendus(attendus)
+    ids = sous_ensemble or sorted(attendus_par_contrat)
+
+    par_contrat: dict[str, dict[str, Any]] = {}
+    toutes_latences: list[float] = []
+    tous_couts: list[float] = []
+
+    for cid in ids:
+        item = attendus_par_contrat[cid]
+        texte = (contrats / f"{cid}.txt").read_text(encoding="utf-8")
+        attendues = set(item["clauses_attendues"])
+        notes_essais: list[float] = []
+        trouvees_dernier: list[str] = []
+        latence_dernier = 0.0
+        cout_dernier = 0.0
+        for _ in range(essais):
+            debut = time.perf_counter()
+            if bundle.strategie == "monolithique":
+                trouvees_dernier = analyser_v1(texte, client, tel).clauses
+            else:
+                trouvees_dernier = [c.type for c in analyser_v2(texte, client, tel).clauses]
+            latence_dernier = (time.perf_counter() - debut) * 1000
+            mesures = tel.metriques.lire()
+            cout_dernier = mesures[-1].cout_eur if mesures else 0.0
+            trouvees_pertinentes = set(trouvees_dernier) & attendues
+            notes_essais.append(len(trouvees_pertinentes) / len(attendues) if attendues else 1.0)
+
+        note_contrat = sum(notes_essais) / len(notes_essais)
+        seuil_note = float(item.get("seuil_note", seuil))
+        par_contrat[cid] = {
+            "note": note_contrat,
+            "seuil_note": seuil_note,
+            "passe": note_contrat >= seuil_note,
+            "trouvees": trouvees_dernier,
+            "manquantes": sorted(attendues - set(trouvees_dernier)),
+            "latence_ms": latence_dernier,
+            "cout_eur": cout_dernier,
+        }
+        toutes_latences.append(latence_dernier)
+        tous_couts.append(cout_dernier)
+
+    note_globale = sum(c["note"] for c in par_contrat.values()) / len(par_contrat)
+    latence_p95 = _p95(toutes_latences)
+    cout_moyen = sum(tous_couts) / len(tous_couts) if tous_couts else 0.0
+
+    motifs: list[str] = []
+    if note_globale < seuil:
+        motifs.append(f"note globale {note_globale:.3f} < seuil {seuil}")
+    for cid, c in par_contrat.items():
+        if not c["passe"]:
+            motifs.append(f"{cid} note {c['note']:.3f} < seuil {c['seuil_note']}")
+    if latence_p95 >= latence_max_ms:
+        motifs.append(f"latence P95 {latence_p95:.0f} ms >= {latence_max_ms} ms")
+    if cout_moyen >= cout_max_eur:
+        motifs.append(f"coût moyen {cout_moyen:.4f} € >= {cout_max_eur} €")
+
+    rapport = Rapport(
+        version=bundle.version,
+        date=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        essais=essais,
+        note=note_globale,
+        par_contrat=par_contrat,
+        latence_p95_ms=latence_p95,
+        cout_moyen_eur=cout_moyen,
+        passe=not motifs,
+        motifs=motifs,
+        seuil=seuil,
+    )
+    if historique is not None:
+        historique.parent.mkdir(parents=True, exist_ok=True)
+        with historique.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(rapport.to_dict(), ensure_ascii=False) + "\n")
+    return rapport
 
 
 def afficher(rapport: Rapport) -> None:

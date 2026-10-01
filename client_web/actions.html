@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Actions — Mardik Pilotage</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav" aria-label="Navigation principale">
+    <span class="nav__brand">MARDIK — Pilotage</span>
+    <ul class="nav__links">
+      <li><a class="nav__link" href="index.html">Tableau de bord</a></li>
+      <li><a class="nav__link" href="pilotage.html">Pilotage</a></li>
+      <li><a class="nav__link" href="actions.html" aria-current="page">Actions</a></li>
+      <li><a class="nav__link" href="journal.html">Journal</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <div class="page-header">
+      <h1>Actions</h1>
+    </div>
+
+    <div id="zone-erreur"></div>
+
+    <div class="callout callout--info" id="etat-actuel">
+      <span class="callout__label">État actuel :</span> chargement…
+    </div>
+
+    <div class="grid grid--2">
+      <div class="card">
+        <h2 class="card__title">Promotion canary</h2>
+        <p class="card__intro">
+          Palier suivant pour le canary en cours. Le palier initial (10 %) est
+          déclenché automatiquement par la chaîne de déploiement à la
+          publication d'une version, pas depuis cet écran.
+        </p>
+        <fieldset class="fieldset">
+          <legend>Palier cible</legend>
+          <label><input type="radio" name="palier" value="50" checked> 50 %</label>
+          <label><input type="radio" name="palier" value="100"> 100 %</label>
+        </fieldset>
+        <button type="button" class="button button--primary" id="bouton-promouvoir">Promouvoir</button>
+        <p class="action-note">Déclencheur : humain (cette action). Refusée si les critères v2 ≥ v1 ne sont pas tenus.</p>
+      </div>
+
+      <div class="card">
+        <h2 class="card__title">Rollback</h2>
+        <p>Revenir à la version saine : v1 à 100 %.</p>
+        <button type="button" class="button button--danger" id="bouton-rollback">Rollback immédiat</button>
+        <p class="action-note">Déclencheur : humain (cette action).</p>
+      </div>
+    </div>
+
+    <div class="callout callout--warn">
+      <span class="callout__label">Attention :</span>
+      chaque action est tracée au journal avec le signal déclencheur, l'horodatage et le résultat.
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    async function chargerEtat() {
+      const conteneur = document.getElementById("etat-actuel");
+      try {
+        const d = await appelApi("/pilotage/dashboard");
+        conteneur.innerHTML =
+          `<span class="callout__label">État actuel :</span> v1 à ${d.trafic.v1_pct} %, v2 à ${d.trafic.v2_pct} %.`;
+      } catch (erreur) {
+        conteneur.innerHTML = `<span class="callout__label">État actuel :</span> indisponible (${erreur.message}).`;
+      }
+    }
+
+    document.getElementById("bouton-promouvoir").addEventListener("click", async () => {
+      const palier = Number(document.querySelector('input[name="palier"]:checked').value);
+      const zoneErreur = document.getElementById("zone-erreur");
+      zoneErreur.innerHTML = "";
+      try {
+        const decision = await appelApi("/pilotage/promotion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cible_pct: palier, declencheur: "humain" }),
+        });
+        zoneErreur.innerHTML =
+          `<div class="callout callout--info"><span class="callout__label">Promotion appliquée :</span> ${decision.fingerprint_cible} à ${palier} %.</div>`;
+        await chargerEtat();
+      } catch (erreur) {
+        afficherErreur(zoneErreur, erreur);
+      }
+    });
+
+    document.getElementById("bouton-rollback").addEventListener("click", async () => {
+      const zoneErreur = document.getElementById("zone-erreur");
+      zoneErreur.innerHTML = "";
+      try {
+        await appelApi("/pilotage/rollback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ declencheur: "humain" }),
+        });
+        zoneErreur.innerHTML =
+          '<div class="callout callout--info"><span class="callout__label">Rollback appliqué :</span> v1 à 100 %.</div>';
+        await chargerEtat();
+      } catch (erreur) {
+        afficherErreur(zoneErreur, erreur);
+      }
+    });
+
+    chargerEtat();
+  </script>
+</body>
+</html>

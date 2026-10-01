@@ -1,4 +1,4 @@
-"""Tests d'acceptance — pilotage et observabilité (5 tests, tous rouges au départ).
+"""Tests d'acceptance — pilotage et observabilité.
 
 Chaque docstring reprend la phrase du brief : Étant donné / quand / alors.
 """

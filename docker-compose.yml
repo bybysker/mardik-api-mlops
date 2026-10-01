@@ -19,6 +19,32 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"   # pour joindre Ollama sur la machine hôte
 
+  # La v2 seule, dans son propre container (rôle « v2 » — docs/spec-v2.md §4).
+  # Même image que `app` : un artefact, un rôle par container. Le rôle vient de
+  # la commande (--factory), jamais d'une variable d'environnement.
+  v2:
+    build: .
+    command: uvicorn app.main:create_app_v2 --factory --host 0.0.0.0 --port 8000
+    ports:
+      - "8001:8000"
+    env_file: .env
+    environment:
+      LLM_PROXY_URL: http://proxy:8080
+      METRICS_PATH: /app/ops/metrics_v2.jsonl   # journal distinct de celui d'`app`
+      REGISTRY_PATH: /app/ops/registry
+    volumes:
+      - ./ops:/app/ops
+      - ./models:/app/models
+      - ./eval:/app/eval
+    depends_on:
+      - proxy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
   # Le proxy de dérive, entre l'app et le fournisseur LLM (Azure ou Ollama).
   proxy:
     build: .
@@ -28,10 +54,23 @@ services:
     env_file: .env
     environment:
       OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      AZURE_AI_ENDPOINT: http://azure-adapter:9000
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - azure-adapter
 
-  # Le tableau de bord (à implémenter : ops/dashboard.py).
+  # Adaptateur Azure — NON fourni, voir ops/azure_adapter.py (docstring).
+  # Corrige deux écarts entre le proxy fourni et l'API /openai/v1 de cette
+  # ressource Azure : api-version non supportée, max_tokens → max_completion_tokens.
+  azure-adapter:
+    build: .
+    command: python -m ops.azure_adapter
+    env_file: .env
+    environment:
+      AZURE_AI_REAL_ENDPOINT: ${AZURE_AI_ENDPOINT}
+
+  # Le tableau de bord (ops/dashboard.py) : fusionne les journaux v1 et v2.
   dashboard:
     build: .
     command: python -m ops.dashboard --serve --port 8501
@@ -40,8 +79,60 @@ services:
     env_file: .env
     environment:
       METRICS_PATH: /app/ops/metrics.jsonl
+      METRICS_PATH_V2: /app/ops/metrics_v2.jsonl
       REGISTRY_PATH: /app/ops/registry
     volumes:
       - ./ops:/app/ops
     depends_on:
       - app
+
+  # Le serveur de pilotage (ops/serveur_pilotage.py) : les 6 routes du
+  # contrat gelé, réutilisant ops/registry/ existant (voir en-tête du
+  # module et docs/conception_revue/pilotage/formats-ops.md), plus les 2
+  # routes d'enrichissement (``ops/enrichissement.py``) — même dossier
+  # ``eval/a_valider`` que les containers `app`/`v2` qui capturent.
+  serveur_pilotage:
+    build: .
+    command: uvicorn ops.serveur_pilotage:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8002:8000"
+    environment:
+      METRICS_PATH: /app/ops/metrics.jsonl
+      METRICS_PATH_V2: /app/ops/metrics_v2.jsonl
+      REGISTRY_PATH: /app/ops/registry
+    volumes:
+      - ./ops:/app/ops
+      - ./eval:/app/eval
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  # Le client web de pilotage (client_web/) : HTML/CSS/JS vanilla, aucun
+  # build, servi tel quel. Appelle serveur_pilotage sur son port hôte
+  # (8002) depuis le navigateur — CORS ouvert côté serveur_pilotage, pas de
+  # Caddy en frontal pour unifier les origines à ce stade.
+  client_web:
+    build: .
+    command: python -m http.server 8503 --directory /app/client_web
+    ports:
+      - "8503:8503"
+    volumes:
+      - ./client_web:/app/client_web
+
+  # Caddy en frontal : point d'entrée unique, route par chemin vers les
+  # containers existants. Caddyfile statique (pas de régénération dynamique
+  # par serveur_pilotage — topologie cible complète = chantier 2).
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "8090:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    depends_on:
+      - app
+      - v2
+      - serveur_pilotage
+      - client_web

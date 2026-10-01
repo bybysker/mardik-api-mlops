@@ -1,0 +1,44 @@
+name: CI
+
+# Lint + tests unitaires/intégration/acceptance, LLM mocké, à chaque push de
+# branche. main en est exclue : on n'y pousse jamais directement (fusion
+# fast-forward de ce qui a déjà été testé ici et gelé par les deux tags —
+# voir conception_figee/chantier1_llmops/gel-eval-avant-fusion.md). Un push
+# de tag seul ne déclenche pas ce workflow. Voir gate.yml pour l'évaluation
+# réelle et cd-main.yml pour le déploiement.
+#
+# Équivalent local : `make ci`.
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      MOCK: "on"
+      DRIFT: "off"
+      LLM_PROVIDER: ollama
+      LLM_MODEL: modele-ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Installer uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      - name: Installer les dépendances
+        run: uv sync
+
+      - name: Linting (ruff)
+        run: uv run ruff check .
+
+      - name: Tests unitaires, intégration, acceptance (MOCK=on)
+        run: uv run pytest -q tests/unit tests/integration tests/acceptance

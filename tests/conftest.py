@@ -30,7 +30,9 @@ def environnement(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("LLM_MODEL", "modele-de-test")
     monkeypatch.delenv("CANARY_PERCENT", raising=False)
     monkeypatch.setenv("METRICS_PATH", str(tmp_path / "metrics.jsonl"))
+    monkeypatch.setenv("METRICS_PATH_V2", str(tmp_path / "metrics_v2.jsonl"))
     monkeypatch.setenv("REGISTRY_PATH", str(tmp_path / "registry"))
+    monkeypatch.setenv("CAPTURE_DIR", str(tmp_path / "a_valider"))
     monkeypatch.setenv("OTEL_TRACES", "off")
     return tmp_path
 

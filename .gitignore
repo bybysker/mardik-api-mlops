@@ -22,11 +22,20 @@ uv.lock
 .idea/
 .DS_Store
 
+# Scratch d'exécution des plans (subagent-driven-development)
+.superpowers/
+
+# Worktrees isolés pour l'exécution de plans (superpowers:using-git-worktrees)
+.worktrees/
+
 # Généré à l'exécution
 eval/history.jsonl
 eval/.metrics_eval.jsonl
 ops/metrics.jsonl
+ops/metrics_v2.jsonl
 ops/registry/journal.jsonl
 ops/registry/v[2-9].*/
 ops/registry/v1.[1-9]*/
 ops/registry/v1.0.[1-9]*/
+# Artefacts écartés à la main (nom hors motif SemVer, ignorés du registre)
+ops/registry/_incident-*/

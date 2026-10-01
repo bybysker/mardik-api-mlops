@@ -1,0 +1,19 @@
+meta {
+  name: 10. Pilotage — journal (historique des décisions)
+  type: http
+  seq: 13
+}
+
+get {
+  url: http://localhost:8090/pilotage/journal
+  body: none
+  auth: none
+}
+
+docs {
+  Chaque changement d'état de la démo (canary, promotion aboutie, rollback,
+  ajustement de seuil) apparaît ici avec l'horodatage, le signal, le
+  déclencheur (auto/humain) et les versions avant/après — « qui, quand,
+  pourquoi ». Les refus de promotion (409) n'y figurent pas. Un rollback
+  sans canary en cours est tracé quand même. Filtrer avec ?signal=canary.
+}

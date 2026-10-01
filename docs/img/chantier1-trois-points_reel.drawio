@@ -1,0 +1,49 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Chantier 1 — vue d'ensemble" id="chantier1-trois-points">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="620" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="titre" value="Chantier 1 — LLMOps (les 3 points)" style="text;html=1;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="450" y="10" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Point 1 -->
+        <mxCell id="p1" value="Point 1 — Le bundle v2&#10;&#10;models/v2/config.yaml&#10;stratégie : map_reduce_clauses&#10;prompt par section + schema_sortie&#10;modèle, coût / 1k tokens" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;align=center;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="340" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- Point 2 -->
+        <mxCell id="p2" value="Point 2 — Le pipeline /v2/analyse&#10;&#10;découpage → extraction (map, 1 appel&#10;LLM / section) → consolidation&#10;(reduce) → confiance (score composite)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;align=center;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="580" y="80" width="340" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="p2ref" value="→ détail : pipeline-v2.drawio" style="text;html=1;align=center;fontStyle=2;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="580" y="260" width="340" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Point 3 -->
+        <mxCell id="p3" value="Point 3 — La chaîne LLMOps&#10;&#10;ci.yml → revue.yml → gate.yml → cd-main.yml&#10;deux tags (revue-ok / eval-ok)&#10;build → publier → registre → canary 10 %" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;align=center;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="80" width="340" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="p3ref" value="→ détail : chaine-llmops-deux-tags_reel.drawio&#10;→ détail : cd-main-deroule_reel.drawio" style="text;html=1;align=center;fontStyle=2;fontSize=11;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="260" width="340" height="34" as="geometry" />
+        </mxCell>
+
+        <!-- fleches entre points -->
+        <mxCell id="a1" value="charge le bundle" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontSize=11;" edge="1" parent="1" source="p1" target="p2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a2" value="évalué par le gate,&#10;construit et déployé" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;fontSize=11;" edge="1" parent="1" source="p2" target="p3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- hors perimetre -->
+        <mxCell id="hp" value="Hors périmètre du chantier 1 (chantier 2) : app/gateway.py (routage réel du trafic canary), ops/deploy.py::surveiller (détection de dérive + rollback automatique)" style="shape=note;whiteSpace=wrap;html=1;size=12;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;align=center;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="330" y="400" width="840" height="60" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
